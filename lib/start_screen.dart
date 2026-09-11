@@ -55,6 +55,8 @@ class StartScreen extends StatelessWidget {
                   debugPrint('시작하기 버튼을 눌렀습니다.');
                 },
                 style: ElevatedButton.styleFrom(
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
                   minimumSize: const Size(double.infinity, 52),
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   shape: RoundedRectangleBorder(
