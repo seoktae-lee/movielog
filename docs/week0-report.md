@@ -8,7 +8,7 @@
 | Flutter 버전 | Flutter 3.47.3 (stable) / Dart 3.13.3 |
 | 실행 기기 | iOS Simulator - iPhone 16e (iOS 26.1) |
 | GitHub 저장소 | https://github.com/seoktae-lee/movielog |
-| Pull Request | https://github.com/seoktae-lee/movielog/pull/1 |
+| Pull Request | https://github.com/seoktae-lee/movielog/pull/2 |
 | 실행 화면 | `docs/week0-start-screen.png` |
 | 오류와 해결 과정 | `docs/week0-troubleshooting.md` (3건 기록) |
 
