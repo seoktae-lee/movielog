@@ -1,30 +1,17 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// MovieLog 시작 화면이 요구한 요소를 모두 그리는지 확인하는 Widget 테스트.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:movielog/main.dart';
+import 'package:movielog/movie_log_app.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('시작 화면에 아이콘, 문구, 시작하기 버튼이 표시된다', (WidgetTester tester) async {
+    await tester.pumpWidget(const MovieLogApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.byIcon(Icons.movie_outlined), findsOneWidget);
+    expect(find.text('영화의 순간을 기록하세요'), findsOneWidget);
+    expect(find.text('보고 싶은 영화부터 나만의 평점까지 한곳에서 관리해요'), findsOneWidget);
+    expect(find.widgetWithText(ElevatedButton, '시작하기'), findsOneWidget);
   });
 }
