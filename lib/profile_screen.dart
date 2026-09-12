@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'widgets/common_app_bar.dart';
 import 'widgets/profile_header.dart';
+import 'widgets/profile_stats.dart';
 
 /// 1주차 정적인 영화 취향 프로필 화면.
 class ProfileScreen extends StatelessWidget {
@@ -16,7 +17,7 @@ class ProfileScreen extends StatelessWidget {
           padding: EdgeInsets.symmetric(horizontal: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [ProfileHeader()],
+            children: [ProfileHeader(), SizedBox(height: 24), ProfileStats()],
           ),
         ),
       ),
