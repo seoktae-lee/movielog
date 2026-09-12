@@ -4,7 +4,7 @@
 | --- | --- |
 | 이름 / 닉네임 | 이석태 |
 | GitHub 저장소 | https://github.com/seoktae-lee/movielog |
-| Pull Request | (PR 생성 후 채움) |
+| Pull Request | https://github.com/seoktae-lee/movielog/pull/3 |
 | 실행 화면 | `docs/week1-profile-screen.png` |
 | Figma 기준 화면 | `docs/week1-figma-profile.png` |
 | Widget Tree 손그림 | `docs/week1-widget-tree.png` |
