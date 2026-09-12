@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'widgets/common_app_bar.dart';
+import 'widgets/edit_profile_button.dart';
+import 'widgets/favorite_genres.dart';
 import 'widgets/profile_header.dart';
 import 'widgets/profile_stats.dart';
 
@@ -17,7 +19,15 @@ class ProfileScreen extends StatelessWidget {
           padding: EdgeInsets.symmetric(horizontal: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [ProfileHeader(), SizedBox(height: 24), ProfileStats()],
+            children: [
+              ProfileHeader(),
+              SizedBox(height: 24),
+              ProfileStats(),
+              SizedBox(height: 24),
+              FavoriteGenres(),
+              SizedBox(height: 32),
+              EditProfileButton(),
+            ],
           ),
         ),
       ),
