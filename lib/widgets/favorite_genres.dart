@@ -12,32 +12,47 @@ class FavoriteGenres extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('선호 장르', style: AppTextStyles.titleMedium),
+        const Text('선호하는 장르', style: AppTextStyles.titleMedium),
         const SizedBox(height: 8),
         Row(
           children: [
             Chip(
-              label: const Text('드라마', style: AppTextStyles.bodySmall),
-              backgroundColor: AppColors.white,
-              side: const BorderSide(color: AppColors.violet),
+              label: Text(
+                '드라마',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.violet,
+                ),
+              ),
+              backgroundColor: AppColors.violetLight,
+              side: BorderSide.none,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
             ),
             const SizedBox(width: 8),
             Chip(
-              label: const Text('SF', style: AppTextStyles.bodySmall),
-              backgroundColor: AppColors.white,
-              side: const BorderSide(color: AppColors.violet),
+              label: Text(
+                'SF',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.violet,
+                ),
+              ),
+              backgroundColor: AppColors.violetLight,
+              side: BorderSide.none,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
             ),
             const SizedBox(width: 8),
             Chip(
-              label: const Text('애니메이션', style: AppTextStyles.bodySmall),
-              backgroundColor: AppColors.white,
-              side: const BorderSide(color: AppColors.violet),
+              label: Text(
+                '애니메이션',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.violet,
+                ),
+              ),
+              backgroundColor: AppColors.violetLight,
+              side: BorderSide.none,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),

@@ -15,7 +15,7 @@ class StatItem extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: AppColors.violetLight,
         border: Border.all(color: AppColors.violet),
         borderRadius: BorderRadius.circular(12),
       ),

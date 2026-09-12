@@ -9,11 +9,18 @@ class ProfileStats extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        StatItem(label: '본 영화', value: '24'),
-        StatItem(label: '평점', value: '18'),
-        StatItem(label: '즐겨찾기', value: '7'),
+        Expanded(
+          child: StatItem(label: '본 영화', value: '24'),
+        ),
+        SizedBox(width: 8),
+        Expanded(
+          child: StatItem(label: '평점', value: '18'),
+        ),
+        SizedBox(width: 8),
+        Expanded(
+          child: StatItem(label: '즐겨찾기', value: '7'),
+        ),
       ],
     );
   }
