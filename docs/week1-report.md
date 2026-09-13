@@ -19,7 +19,8 @@
 | AppColors에서 관리한 값 | `violet` #6750A4, `violetLight` #EDE7F6, `warmWhite` #FAF9F5, `white`, `black` #1C1B1F, `gray` #79747E |
 | ThemeData에서 관리한 값 | `useMaterial3`, `fontFamily: 'Manrope'`, `colorScheme`(primary=violet, surface=warmWhite), `scaffoldBackgroundColor`, `appBarTheme`(배경·전경색, elevation 0, surfaceTint 투명, systemOverlayStyle) |
 | 적용한 Font | Manrope (Variable Font, `assets/fonts/Manrope-VariableFont_wght.ttf`). 한글 Glyph가 없어 한글은 시스템 폰트로 표시됨 |
-| 트러블슈팅 | `docs/week1-troubleshooting.md` (5건 기록) |
+| 트러블슈팅 | `docs/week1-troubleshooting.md` (UI 5건 + ERD 2건) |
+| ERD 워크북 | `docs/week1-erd.md` — "요구사항을 데이터로 바꾸기" 미션 기록 |
 
 ## Figma와 비교해 조정한 것
 

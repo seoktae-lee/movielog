@@ -137,3 +137,65 @@
   복사 명령 전에 ls 대상 으로 이미 있는지 확인한다.
   복사 후에는 find 대상 -type f | wc -l 로 파일 수를 예상값과 대조한다.
 ```
+
+---
+
+아래 6, 7번은 1주차 두 번째 워크북(ERD 설계, `docs/week1-erd.md`)에서 겪은 것이다.
+
+## 6. ERDCloud에 DDL을 Import했더니 모든 컬럼이 NOT NULL로 들어옴
+
+```
+이슈:
+  docs/week1-erd.sql을 ERDCloud Import로 올려 테이블 10개와 관계선 12개를 한 번에 만들었다.
+  그런데 Export → SQL Preview로 확인하니 deleted_at, completed_at처럼 NULL이어야 하는
+  7개 컬럼까지 전부 NOT NULL로 나왔다.
+
+  `completed_at`  DATETIME  NOT NULL,   ← NULL 이어야 함
+  `deleted_at`    DATETIME  NOT NULL,   ← NULL 이어야 함
+
+원인:
+  1) ERDCloud Import가 DDL의 NULL/NOT NULL 지정을 읽지 않고 기본값(NOT NULL)으로 넣는다.
+     AUTO_INCREMENT도 마찬가지로 무시된다.
+  2) 컬럼 설정창(ⓘ)의 "Is Allow null" 체크박스가 흰색으로 꽉 찬 상태 = 꺼짐,
+     비어 있는 상태 = 켜짐이라, 눈으로 보면 체크 여부를 반대로 읽기 쉬웠다.
+     이 때문에 "체크했다"고 생각한 컬럼이 실제로는 NOT NULL인 채였고,
+     옆 줄(created_at)을 잘못 눌러 엉뚱한 컬럼이 NULL이 되기도 했다.
+
+해결:
+  눈으로 판단하지 않고 Export → SQL Preview를 기준으로 삼았다.
+  NULL이어야 하는 7개 컬럼을 하나씩 ⓘ로 열어 Logical Name을 확인한 뒤 Allow null을 켜고 SAVE,
+  매번 Export로 재확인했다.
+  member.address_detail / email / phone / deleted_at, store.deleted_at, review.deleted_at,
+  member_mission.completed_at → 7개 모두 NULL로 확인.
+
+다른 해결 방법:
+  Import를 쓰지 않고 테이블을 손으로 만들면 컬럼마다 설정창에서 바로 정하므로 이 문제가 없다.
+  대신 10개 테이블 70여 개 컬럼을 클릭으로 입력해야 한다.
+
+다시 발생하지 않게 확인한 내용:
+  ERDCloud에서 제약조건이 맞는지는 화면이 아니라 Export SQL로 본다.
+  실제 스키마의 기준은 ERDCloud가 아니라 docs/week1-erd.sql이다.
+```
+
+## 7. 컬럼 이름 `condition`이 MySQL 예약어
+
+```
+이슈:
+  mission 테이블의 "미션 조건 문구" 컬럼을 3단계에서 condition으로 지었다.
+  DDL로 옮기는 과정에서 이 이름이 MySQL 예약어(CONDITION)라는 것을 확인했다.
+
+원인:
+  CONDITION은 MySQL 저장 프로시저 문법(DECLARE ... CONDITION)에 쓰이는 예약어라
+  백틱 없이 컬럼명으로 쓰면 CREATE TABLE에서 문법 오류가 난다.
+
+해결:
+  description으로 이름을 바꾸고 노션 3단계 기록과 DDL을 함께 수정했다.
+
+다른 해결 방법:
+  `condition`처럼 백틱으로 감싸면 쓸 수는 있지만, 모든 쿼리에서 매번 백틱을 붙여야 해서
+  이름을 바꾸는 쪽이 낫다.
+
+다시 발생하지 않게 확인한 내용:
+  컬럼명을 지을 때 order, group, key, status 같은 흔한 단어는 예약어 목록을 한 번 확인한다.
+  https://dev.mysql.com/doc/refman/8.0/en/keywords.html
+```
