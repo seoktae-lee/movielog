@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 /// MovieLog의 첫 화면.
 ///
@@ -18,11 +19,11 @@ class StartScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               const Spacer(flex: 2),
-              Icon(
-                Icons.movie_outlined,
-                size: 96,
-                color: colorScheme.primary,
-                semanticLabel: 'MovieLog 로고',
+              SvgPicture.asset(
+                'assets/logos/movielog_logo.svg',
+                width: 96,
+                height: 96,
+                semanticsLabel: 'MovieLog 로고',
               ),
               const SizedBox(height: 32),
               const Text(

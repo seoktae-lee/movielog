@@ -33,14 +33,17 @@ String greeting({required String name, int week = 0}) {
 void printTitlesWithFor() {
   debugPrint('--- for 문으로 출력 ---');
   for (final Movie movie in sampleMovies) {
-    debugPrint('${movie.id}. ${movie.title} (${movie.genre}) · ${movie.ratingLabel}');
+    debugPrint(
+      '${movie.id}. ${movie.title} (${movie.genre}) · ${movie.ratingLabel}',
+    );
   }
 }
 
 /// map으로 제목만 뽑아 한 줄로 출력한다.
 void printTitlesWithMap() {
-  final List<String> titles =
-      sampleMovies.map((Movie movie) => movie.title).toList();
+  final List<String> titles = sampleMovies
+      .map((Movie movie) => movie.title)
+      .toList();
   debugPrint('--- map으로 뽑은 제목 ---');
   debugPrint(titles.join(', '));
 }
@@ -50,7 +53,9 @@ void printDisplayNames() {
   const List<String?> nicknames = <String?>['무비러버', null, '   ', ' 석태 '];
   debugPrint('--- nullable 닉네임 변환 ---');
   for (final String? nickname in nicknames) {
-    debugPrint('${nickname.toString().padRight(8)} -> ${displayName(nickname)}');
+    debugPrint(
+      '${nickname.toString().padRight(8)} -> ${displayName(nickname)}',
+    );
   }
 }
 
