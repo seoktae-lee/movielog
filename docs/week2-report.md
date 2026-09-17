@@ -4,7 +4,7 @@
 | --- | --- |
 | 이름 / 닉네임 | 이석태 |
 | GitHub 저장소 | https://github.com/seoktae-lee/movielog |
-| Pull Request | (PR 생성 후 채움) |
+| Pull Request | https://github.com/seoktae-lee/movielog/pull/4 |
 | 입력 전 화면 | `docs/week2-01-empty.png` |
 | Validation 오류 화면 | `docs/week2-02-error.png` |
 | 입력 완료 화면 | `docs/week2-03-complete.png` |
