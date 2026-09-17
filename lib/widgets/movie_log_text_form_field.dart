@@ -18,6 +18,7 @@ class MovieLogTextFormField extends StatelessWidget {
     this.keyboardType,
     this.textInputAction = TextInputAction.next,
     this.obscureText = false,
+    this.suffixIcon,
   });
 
   final TextEditingController controller;
@@ -32,6 +33,9 @@ class MovieLogTextFormField extends StatelessWidget {
   final TextInputAction textInputAction;
   final bool obscureText;
 
+  /// 비밀번호 표시·숨김 버튼처럼 입력창 오른쪽에 놓을 Widget.
+  final Widget? suffixIcon;
+
   @override
   Widget build(BuildContext context) {
     return TextFormField(
@@ -41,6 +45,7 @@ class MovieLogTextFormField extends StatelessWidget {
         labelText: labelText,
         hintText: hintText,
         prefixIcon: Icon(prefixIcon),
+        suffixIcon: suffixIcon,
         border: const OutlineInputBorder(),
       ),
       keyboardType: keyboardType,
