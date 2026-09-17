@@ -1,0 +1,100 @@
+# CodeRabbit 설정 (https://docs.coderabbit.ai/reference/configuration)
+# UMC 11기 Flutter 스터디 movielog 프로젝트용
+
+language: "ko-KR"
+early_access: false
+tone_instructions: "Flutter 시니어 개발자 관점에서 피드백하되, 학습 중인 개발자에게 이유를 설명하듯 작성하세요. 모든 지적에는 근거와 수정 예시를 포함하세요."
+
+reviews:
+  # assertive: 엄격하고 꼼꼼 / chill: 핵심 위주
+  profile: "chill"
+  request_changes_workflow: false
+
+  # 요약 및 시각화
+  high_level_summary: true
+  high_level_summary_placeholder: "@coderabbitai summary"
+  changed_files_summary: true
+  collapse_walkthrough: true
+  sequence_diagrams: true
+  review_status: true
+  poem: false
+
+  # 이슈 / PR / 레이블 연동은 개인 스터디 리포라 모두 끔
+  assess_linked_issues: false
+  related_issues: false
+  related_prs: false
+  suggested_labels: false
+  auto_apply_labels: false
+  suggested_reviewers: false
+  auto_assign_reviewers: false
+
+  # 리뷰에서 제외할 파일 (플랫폼 폴더, 빌드 산출물, 생성 파일)
+  path_filters:
+    - "!**/pubspec.lock"
+    - "!**/build/**"
+    - "!**/.dart_tool/**"
+    - "!**/*.g.dart"
+    - "!**/*.freezed.dart"
+    - "!android/**"
+    - "!ios/**"
+    - "!macos/**"
+    - "!linux/**"
+    - "!windows/**"
+    - "!web/**"
+    - "!assets/**"
+    - "!docs/**/*.png"
+    - "!docs/**/*.jpg"
+
+  # 경로별 리뷰 지침
+  path_instructions:
+    - path: "lib/**/*.dart"
+      instructions: |
+        - 위젯 트리 구조, const 생성자 활용, 불필요한 리빌드 여부를 확인하세요.
+        - Material 3 테마(ThemeData, ColorScheme)를 하드코딩 색상 대신 사용했는지 확인하세요.
+        - 상태 관리 방식이 일관적인지, StatefulWidget 사용이 적절한지 확인하세요.
+        - 한 파일이 지나치게 길어지면 위젯 분리를 제안하세요.
+    - path: "test/**/*.dart"
+      instructions: "Widget 테스트가 화면의 핵심 요소를 검증하는지, 테스트 이름이 의도를 드러내는지 확인하세요."
+    - path: "docs/**/*.md"
+      instructions: "문서는 오탈자와 사실 관계만 가볍게 확인하고 문체는 지적하지 마세요."
+
+  # 자동 리뷰 트리거
+  auto_review:
+    enabled: true
+    # Trial은 시간당 리뷰 3~5회 제한이 있어 커밋마다 재리뷰하지 않도록 끔.
+    # 재리뷰가 필요하면 PR 코멘트에 "@coderabbitai review" 를 남기면 됨.
+    auto_incremental_review: false
+    drafts: false
+    base_branches:
+      - "main"
+    ignore_title_keywords:
+      - "[WIP]"
+    labels: []
+
+  tools:
+    github-checks:
+      enabled: true
+      timeout_ms: 90000
+
+chat:
+  auto_reply: true
+  tone_instructions: "핵심을 명확히 전달하고 구체적인 Dart 코드 수정 예시를 포함하세요."
+
+knowledge_base:
+  opt_out: false
+  web_search:
+    enabled: true
+  code_guidelines:
+    enabled: true
+    files:
+      - "README.md"
+      - "analysis_options.yaml"
+    instructions:
+      - "flutter_lints 규칙을 따릅니다."
+      - "하드코딩된 문자열, 색상, 숫자는 상수나 테마로 분리합니다."
+  learnings:
+    enabled: true
+  issues:
+    enabled: false
+  pull_requests:
+    enabled: true
