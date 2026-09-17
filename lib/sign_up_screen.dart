@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import 'widgets/common_app_bar.dart';
+import 'widgets/movie_log_text_form_field.dart';
+import 'widgets/sign_up_button.dart';
+import 'widgets/terms_checkbox.dart';
 
 /// 2주차 회원가입 화면.
 ///
@@ -108,46 +111,35 @@ class _SignUpScreenState extends State<SignUpScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                TextFormField(
+                MovieLogTextFormField(
                   controller: _nicknameController,
-                  decoration: const InputDecoration(
-                    labelText: '닉네임',
-                    hintText: '두 글자 이상 입력',
-                    prefixIcon: Icon(Icons.person_outline),
-                    border: OutlineInputBorder(),
-                  ),
-                  textInputAction: TextInputAction.next,
+                  labelText: '닉네임',
+                  hintText: '두 글자 이상 입력',
+                  prefixIcon: Icons.person_outline,
                   validator: _validateNickname,
                   // 버튼 활성화 조건이 최신 입력값을 읽도록 화면을 다시 그린다.
                   onChanged: (_) => setState(() {}),
                   onFieldSubmitted: (_) => _emailFocusNode.requestFocus(),
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
+                MovieLogTextFormField(
                   controller: _emailController,
                   focusNode: _emailFocusNode,
-                  decoration: const InputDecoration(
-                    labelText: '이메일',
-                    hintText: 'movielog@example.com',
-                    prefixIcon: Icon(Icons.mail_outline),
-                    border: OutlineInputBorder(),
-                  ),
+                  labelText: '이메일',
+                  hintText: 'movielog@example.com',
+                  prefixIcon: Icons.mail_outline,
                   keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.next,
                   validator: _validateEmail,
                   onChanged: (_) => setState(() {}),
                   onFieldSubmitted: (_) => _passwordFocusNode.requestFocus(),
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
+                MovieLogTextFormField(
                   controller: _passwordController,
                   focusNode: _passwordFocusNode,
-                  decoration: const InputDecoration(
-                    labelText: '비밀번호',
-                    hintText: '8자 이상 입력',
-                    prefixIcon: Icon(Icons.lock_outline),
-                    border: OutlineInputBorder(),
-                  ),
+                  labelText: '비밀번호',
+                  hintText: '8자 이상 입력',
+                  prefixIcon: Icons.lock_outline,
                   obscureText: true,
                   // 마지막 필드이므로 완료 버튼으로 키보드를 닫는다.
                   textInputAction: TextInputAction.done,
@@ -156,7 +148,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   onFieldSubmitted: (_) => FocusScope.of(context).unfocus(),
                 ),
                 const SizedBox(height: 24),
-                CheckboxListTile(
+                TermsCheckbox(
                   value: _agreedToTerms,
                   onChanged: (value) {
                     setState(() {
@@ -164,19 +156,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       _agreedToTerms = value ?? false;
                     });
                   },
-                  title: const Text('서비스 이용약관에 동의합니다. (필수)'),
-                  controlAffinity: ListTileControlAffinity.leading,
-                  contentPadding: EdgeInsets.zero,
                 ),
                 const SizedBox(height: 24),
-                FilledButton(
-                  // onPressed가 null이면 버튼이 비활성화된다.
-                  onPressed: canSubmit ? _submit : null,
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: const Text('가입하기'),
-                ),
+                // onPressed가 null이면 버튼이 비활성화된다.
+                SignUpButton(onPressed: canSubmit ? _submit : null),
               ],
             ),
           ),
