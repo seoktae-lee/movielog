@@ -3,8 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:movielog/movie_log_app.dart';
 import 'package:movielog/profile_screen.dart';
+import 'package:movielog/sign_up_screen.dart';
 import 'package:movielog/start_screen.dart';
 import 'package:movielog/theme/app_theme.dart';
 import 'package:movielog/widgets/stat_item.dart';
@@ -46,7 +46,9 @@ void main() {
         tester.widget<FilledButton>(signUpButton()).onPressed != null;
 
     testWidgets('입력 전에는 가입 버튼이 비활성화된다', (WidgetTester tester) async {
-      await tester.pumpWidget(const MovieLogApp());
+      await tester.pumpWidget(
+        MaterialApp(theme: AppTheme.light, home: const SignUpScreen()),
+      );
 
       expect(find.text('회원가입'), findsOneWidget);
       expect(find.text('닉네임'), findsOneWidget);
@@ -58,7 +60,9 @@ void main() {
     testWidgets('조건이 모두 충족되면 버튼이 활성화되고, 제출 시 형식 오류를 표시한다', (
       WidgetTester tester,
     ) async {
-      await tester.pumpWidget(const MovieLogApp());
+      await tester.pumpWidget(
+        MaterialApp(theme: AppTheme.light, home: const SignUpScreen()),
+      );
 
       // canSubmit(느슨한 조건)은 통과하지만 validator(정규식)는 실패하는 이메일.
       await tester.enterText(find.byType(TextFormField).at(0), '태이');
@@ -77,7 +81,9 @@ void main() {
     });
 
     testWidgets('모든 입력이 유효하면 환영 메시지를 표시한다', (WidgetTester tester) async {
-      await tester.pumpWidget(const MovieLogApp());
+      await tester.pumpWidget(
+        MaterialApp(theme: AppTheme.light, home: const SignUpScreen()),
+      );
 
       await tester.enterText(find.byType(TextFormField).at(0), '태이');
       await tester.enterText(find.byType(TextFormField).at(1), 'a@b.com');
