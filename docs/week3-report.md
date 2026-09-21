@@ -4,7 +4,7 @@
 | --- | --- |
 | 이름 / 닉네임 | 이석태 |
 | GitHub 저장소 | https://github.com/seoktae-lee/movielog |
-| Pull Request | (PR 생성 후 채운다) |
+| Pull Request | https://github.com/seoktae-lee/movielog/pull/5 |
 | 사용한 go_router 버전 | `go_router 18.0.1` (`flutter_rating_bar 4.0.1`) |
 | 홈 화면 | `docs/week3-01-home.png` |
 | 영화 목록 화면 | `docs/week3-02-movies.png` |
