@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:movielog/profile_screen.dart';
 import 'package:movielog/sign_up_screen.dart';
@@ -80,9 +81,25 @@ void main() {
       expect(find.textContaining('가입을 환영합니다'), findsNothing);
     });
 
-    testWidgets('모든 입력이 유효하면 환영 메시지를 표시한다', (WidgetTester tester) async {
+    testWidgets('모든 입력이 유효하면 환영 메시지를 표시하고 홈으로 이동한다', (
+      WidgetTester tester,
+    ) async {
+      // _submit()이 context.go('/home')을 호출하므로 GoRouter 안에서 띄운다.
+      final router = GoRouter(
+        initialLocation: '/register',
+        routes: [
+          GoRoute(
+            path: '/register',
+            builder: (context, state) => const SignUpScreen(),
+          ),
+          GoRoute(
+            path: '/home',
+            builder: (context, state) => const Scaffold(body: Text('테스트용 홈')),
+          ),
+        ],
+      );
       await tester.pumpWidget(
-        MaterialApp(theme: AppTheme.light, home: const SignUpScreen()),
+        MaterialApp.router(theme: AppTheme.light, routerConfig: router),
       );
 
       await tester.enterText(find.byType(TextFormField).at(0), '태이');
@@ -95,6 +112,11 @@ void main() {
       await tester.pump();
 
       expect(find.text('태이님, 가입을 환영합니다!'), findsOneWidget);
+
+      // go로 이동했으므로 회원가입 화면은 사라지고 홈만 남는다.
+      await tester.pumpAndSettle();
+      expect(find.text('테스트용 홈'), findsOneWidget);
+      expect(find.byType(SignUpScreen), findsNothing);
     });
   });
 }
