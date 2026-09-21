@@ -8,9 +8,23 @@ import '../models/movie.dart';
 
 /// 연습에 사용할 영화 3개.
 const List<Movie> sampleMovies = <Movie>[
-  Movie(id: 1, title: '인터스텔라', genre: 'SF', rating: 4.8),
-  Movie(id: 2, title: '너의 이름은.', genre: '애니메이션', rating: 4.5),
-  Movie(id: 3, title: '기생충', genre: '드라마'),
+  Movie(
+    id: 1,
+    title: '인터스텔라',
+    genre: 'SF',
+    year: 2014,
+    posterAsset: '',
+    rating: 4.8,
+  ),
+  Movie(
+    id: 2,
+    title: '너의 이름은.',
+    genre: '애니메이션',
+    year: 2016,
+    posterAsset: '',
+    rating: 4.5,
+  ),
+  Movie(id: 3, title: '기생충', genre: '드라마', year: 2019, posterAsset: ''),
 ];
 
 /// nullable 닉네임을 안전한 기본값으로 변환한다.
