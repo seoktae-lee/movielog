@@ -11,10 +11,11 @@
     color: #1c1b1f; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
   .page {
-    width: 210mm; height: 297mm; padding: 20mm 18mm; page-break-after: always;
+    width: 210mm; height: 297mm; padding: 18mm 18mm 14mm; page-break-after: always;
     display: flex; flex-direction: column;
   }
   .page:last-child { page-break-after: auto; }
+  .page > section:last-of-type { margin-bottom: 0; }
 
   /* 머리말 */
   .kicker { font-size: 11px; letter-spacing: .14em; font-weight: 700; margin-bottom: 6px; }
@@ -28,7 +29,7 @@
   .be .rule { background: linear-gradient(90deg,#1a7f37,#c5e6ce); }
 
   /* 섹션 */
-  section { margin-bottom: 46px; }
+  section { margin-bottom: 40px; }
   h2 { font-size: 20px; letter-spacing: -.01em; display: flex; align-items: center; gap: 9px; margin-bottom: 4px; }
   .num {
     width: 27px; height: 27px; border-radius: 8px; color: #fff; font-size: 14px;
@@ -63,7 +64,6 @@
   .take b { font-weight: 700; }
 
   .note { font-size: 13.5px; color: #6b6672; line-height: 1.7; margin-top: 16px; }
-  .foot { margin-top: auto; font-size: 11px; color: #9a96a3; border-top: 1px solid #ece9f1; padding-top: 10px; }
 
   /* 3분할 카드 */
   .card { background: #fff; border: 1px solid #e3e0ea; border-radius: 14px; padding: 20px 18px; }
@@ -71,6 +71,14 @@
   .be .card h3 { color: #1a7f37; }
   .card .when { font-size: 13.5px; line-height: 1.6; margin-top: 12px; }
   .card .mine { font-size: 12.5px; color: #6b6672; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #e3e0ea; }
+  .tight section { margin-bottom: 26px; }
+  .tight .fig { padding: 18px 20px; }
+  .tight .sub { margin-bottom: 14px; }
+  .tight .note { margin-top: 12px; }
+  .tight .take { margin-top: 12px; }
+  .tight .bad, .tight .good { padding: 14px 16px; }
+  .tight h1 { font-size: 28px; }
+  .tight .rule { margin: 14px 0 24px; }
   .only { font-size: 12px; font-weight: 700; color: #6750A4; background: #f0ecf8; border-radius: 6px; padding: 3px 7px; display: inline-block; margin-top: 10px; }
 </style>
 </head>
@@ -153,7 +161,6 @@
     </div>
   </section>
 
-  <div class="foot">UMC 11기 · 3주차 스터디 담당 파트 · 이석태(태이)</div>
 </div>
 
 <!-- ===================== FE 2 ===================== -->
@@ -223,7 +230,6 @@
     </div>
   </section>
 
-  <div class="foot">UMC 11기 · 3주차 스터디 담당 파트 · 이석태(태이)</div>
 </div>
 
 <!-- ===================== FE 3 ===================== -->
@@ -297,7 +303,6 @@
     </div>
   </section>
 
-  <div class="foot">UMC 11기 · 3주차 스터디 담당 파트 · 이석태(태이)</div>
 </div>
 
 <!-- ===================== BE 1 ===================== -->
@@ -397,21 +402,20 @@
   </section>
 
 
-  <div class="foot">UMC 11기 · 3주차 스터디 담당 파트 · 이석태(태이)</div>
 </div>
 
 <!-- ===================== BE 2 ===================== -->
-<div class="page be">
+<div class="page be tight">
   <div class="kicker">3주차 담당 · BACKEND</div>
-  <h1>설정은 <strong>거의 없다</strong><br>Spring이 대신 만들어 준다</h1>
-  <p class="lead">풀을 직접 만들 일은 없다. 대신 <b>언제 만들어지는지</b>와 <b>어떻게 관리되는지</b>는 알아야 한다.</p>
+  <h1>설정은 <strong>거의 없다</strong><br>대신 <strong>반납</strong>은 꼭 챙긴다</h1>
+  <p class="lead">Spring이 풀을 알아서 만들어 준다. 우리가 알아야 할 건 <b>언제 만들어지는지</b>와 <b>무엇을 조심해야 하는지</b>다.</p>
   <div class="rule"></div>
 
   <section>
     <h2><span class="num">3</span>Spring은 자동이다</h2>
     <p class="sub">Spring Boot에는 <b>HikariCP</b>라는 풀이 이미 들어 있다. 아래 설정만 쓰면 풀이 저절로 만들어진다. (NestJS는 <code>mysql2</code>의 <code>createPool</code>을 직접 조립한다)</p>
     <div class="fig">
-      <pre class="mono" style="line-height:1.7;color:#2f4f3a"># application.yml — Spring은 이게 전부다
+      <pre class="mono" style="line-height:1.55;color:#2f4f3a"># application.yml — Spring은 이게 전부다
 spring:
   datasource:
     url: jdbc:mysql://localhost:3306/book_rental
@@ -425,7 +429,7 @@ spring:
     <h2><span class="num">4</span>기동 로그에 Hikari가 없다고 실패가 아니다</h2>
     <p class="sub">풀은 서버가 켜질 때가 아니라 <b>첫 쿼리가 필요할 때</b> 만들어진다(lazy 초기화).</p>
     <div class="fig">
-      <svg width="100%" viewBox="0 0 640 104">
+      <svg width="100%" viewBox="0 0 640 88">
         <g font-family="-apple-system, sans-serif" font-size="11.5">
           <line x1="40" y1="42" x2="600" y2="42" stroke="#dde9e1" stroke-width="2"/>
           <circle cx="60" cy="42" r="7" fill="#9cc7ac"/>
@@ -445,16 +449,6 @@ spring:
       </svg>
     </div>
   </section>
-
-
-  <div class="foot">UMC 11기 · 3주차 스터디 담당 파트 · 이석태(태이)</div>
-</div>
-
-<!-- ===================== BE 3 ===================== -->
-<div class="page be">
-  <div class="kicker">3주차 담당 · 마무리</div>
-  <h1><strong>조심할 것 둘</strong>,<br>그리고 오늘 한 장 요약</h1>
-  <div class="rule"></div>
 
   <section>
     <h2><span class="num">5</span>조심할 것 두 가지</h2>
@@ -483,33 +477,8 @@ spring:
     <div class="take"><b>한 줄 정리 —</b> 풀은 <b>빌리고 반드시 반납하는</b> 한정된 자원이다. 크기는 DB가 감당할 만큼만.</div>
   </section>
 
-  <section>
-    <h2><span class="num">6</span>오늘 담당 파트 한 장 요약</h2>
-    <div class="cols">
-      <div class="fig" style="background:#faf9fc;border-color:#e8e5ee">
-        <div style="font-size:12px;font-weight:700;letter-spacing:.1em;color:#6750A4;margin-bottom:12px">FRONTEND</div>
-        <div style="font-size:13.5px;line-height:2">
-          · 데이터는 <b>한 곳</b>에, 화면은 읽기만<br>
-          · 없을 수 있으면 <code>Movie?</code> — <code>!</code>는 앱을 죽인다<br>
-          · 사이에 뭘 넣으면 <code>separated</code>, 여러 열이면 <code>GridView</code><br>
-          · 가로 목록은 <b>높이를 직접</b> 준다<br>
-          · <code>childAspectRatio</code>는 작을수록 세로로 길다
-        </div>
-      </div>
-      <div class="fig">
-        <div style="font-size:12px;font-weight:700;letter-spacing:.1em;color:#1a7f37;margin-bottom:12px">BACKEND</div>
-        <div style="font-size:13.5px;line-height:2">
-          · 느린 건 쿼리가 아니라 <b>연결 준비</b><br>
-          · 풀 = 미리 뚫어 두고 <b>빌리고 반납</b>하는 바구니<br>
-          · Spring은 <b>HikariCP 자동</b>, 설정은 datasource뿐<br>
-          · 풀은 <b>첫 쿼리 때</b> 만들어진다(lazy)<br>
-          · 반납 안 하면 서버가 멈춘다 · 크기는 DB가 감당할 만큼
-        </div>
-      </div>
-    </div>
-  </section>
 
-  <div class="foot">UMC 11기 · 3주차 스터디 담당 파트 · 이석태(태이)</div>
+
 </div>
 
 </body>
