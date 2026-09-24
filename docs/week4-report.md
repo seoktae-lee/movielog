@@ -4,7 +4,7 @@
 | --- | --- |
 | 이름 / 닉네임 | 이석태 |
 | GitHub 저장소 | https://github.com/seoktae-lee/movielog |
-| Pull Request | (PR 생성 후 링크 기입) |
+| Pull Request | https://github.com/seoktae-lee/movielog/pull/6 |
 | 추가한 Package | `shared_preferences 2.5.5` (dev: `shared_preferences_platform_interface` — 테스트용 메모리 저장소) |
 | Loading 화면 | `docs/week4-01-loading.png` |
 | Success 화면 | `docs/week4-02-success.png` |
