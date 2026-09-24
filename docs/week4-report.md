@@ -11,8 +11,8 @@
 | Empty 화면 | `docs/week4-03-empty.png` |
 | Error 화면 | `docs/week4-04-error.png` |
 | 저장된 장르 복원 화면 | `docs/week4-05-restored-genre.png` (앱 실행 시 저장값 `['SF']` 복원) |
-| Error → 재시도 성공 영상 | (촬영 후 PR에 첨부 — 아래 "캡처·촬영 방법" 참고) |
-| 앱 재실행 후 장르 복원 영상 | (촬영 후 PR에 첨부 — 캡처는 `week4-05`) |
+| Error → 재시도 성공 영상 | 노션 제출 페이지에 첨부 (🐞 `첫 시도만 실패` → `다시 시도` → 목록) |
+| 앱 재실행 후 장르 복원 영상 | 노션 제출 페이지에 첨부 (캡처는 `week4-05`) |
 | Future를 생성한 위치 | `_MovieListScreenState.initState()` / `_retry()` / `_refresh()` / `_changeMode()` — `build` 안에서는 만들지 않음 |
 | 사용한 SharedPreferences Key | `selected_genres` (`List<String>`), `movie_sort_option` (`String`, Challenge) |
 | `flutter analyze` | `No issues found!` |
