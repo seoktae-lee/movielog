@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>3주차 담당 파트</title>
+<style>
+  @page { size: A4 portrait; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Apple SD Gothic Neo", "Pretendard", sans-serif;
+    color: #1c1b1f; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .page {
+    width: 210mm; height: 297mm; padding: 20mm 18mm; page-break-after: always;
+    display: flex; flex-direction: column;
+  }
+  .page:last-child { page-break-after: auto; }
+
+  /* 머리말 */
+  .kicker { font-size: 11px; letter-spacing: .14em; font-weight: 700; margin-bottom: 6px; }
+  h1 { font-size: 31px; line-height: 1.25; letter-spacing: -.02em; }
+  .lead { font-size: 15.5px; color: #49454f; margin-top: 10px; line-height: 1.6; }
+  .rule { height: 5px; border-radius: 3px; margin: 16px 0 30px; }
+
+  .fe .kicker, .fe h1 strong { color: #6750A4; }
+  .fe .rule { background: linear-gradient(90deg,#6750A4,#d6cdec); }
+  .be .kicker, .be h1 strong { color: #1a7f37; }
+  .be .rule { background: linear-gradient(90deg,#1a7f37,#c5e6ce); }
+
+  /* 섹션 */
+  section { margin-bottom: 46px; }
+  h2 { font-size: 20px; letter-spacing: -.01em; display: flex; align-items: center; gap: 9px; margin-bottom: 4px; }
+  .num {
+    width: 27px; height: 27px; border-radius: 8px; color: #fff; font-size: 14px;
+    display: inline-flex; align-items: center; justify-content: center; flex: none;
+  }
+  .fe .num { background: #6750A4; } .be .num { background: #1a7f37; }
+  .sub { font-size: 14px; color: #6b6672; margin: 0 0 20px 36px; line-height: 1.6; }
+
+  /* 카드·그림 */
+  .fig { background: #faf9fc; border: 1px solid #e8e5ee; border-radius: 16px; padding: 26px; }
+  .be .fig { background: #f7faf8; border-color: #dde9e1; }
+  .cols { display: flex; gap: 14px; }
+  .cols > * { flex: 1; }
+
+  .bad, .good { border-radius: 14px; padding: 18px 20px; border: 1px solid; }
+  .bad { background: #fdf3f2; border-color: #f3d7d4; }
+  .good { background: #f1f8f3; border-color: #cfe7d7; }
+  .tag { font-size: 13px; font-weight: 700; margin-bottom: 10px; display: block; }
+  .bad .tag { color: #b3261e; } .good .tag { color: #1a7f37; }
+
+  code, .mono { font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
+  code { background: #eeebf4; padding: 1px 5px; border-radius: 4px; }
+  .be code { background: #e4f0e8; }
+
+  /* 결론 배지 */
+  .take {
+    margin-top: 16px; border-left: 4px solid; padding: 11px 15px; border-radius: 0 10px 10px 0;
+    font-size: 15px; line-height: 1.65;
+  }
+  .fe .take { border-color: #6750A4; background: #f4f1fa; }
+  .be .take { border-color: #1a7f37; background: #eef7f1; }
+  .take b { font-weight: 700; }
+
+  .note { font-size: 13.5px; color: #6b6672; line-height: 1.7; margin-top: 16px; }
+  .foot { margin-top: auto; font-size: 11px; color: #9a96a3; border-top: 1px solid #ece9f1; padding-top: 10px; }
+
+  /* 3분할 카드 */
+  .card { background: #fff; border: 1px solid #e3e0ea; border-radius: 14px; padding: 20px 18px; }
+  .card h3 { font-size: 14px; font-family: ui-monospace, Menlo, monospace; margin-bottom: 12px; color: #6750A4; }
+  .be .card h3 { color: #1a7f37; }
+  .card .when { font-size: 13.5px; line-height: 1.6; margin-top: 12px; }
+  .card .mine { font-size: 12.5px; color: #6b6672; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #e3e0ea; }
+  .only { font-size: 12px; font-weight: 700; color: #6750A4; background: #f0ecf8; border-radius: 6px; padding: 3px 7px; display: inline-block; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<!-- ===================== FE 1 ===================== -->
+<div class="page fe">
+  <div class="kicker">3주차 담당 · FRONTEND</div>
+  <h1>같은 영화가 화면마다 다르면<br>안 되니까 — <strong>Mock 데이터 한곳에</strong></h1>
+  <div class="rule"></div>
+
+  <section>
+    <h2><span class="num">1</span>화면마다 데이터를 적으면 생기는 일</h2>
+    <p class="sub">홈·목록·상세는 <b>같은 영화</b>를 보여줘야 한다. 각자 적으면 같은 영화의 제목·평점이 화면마다 달라진다.</p>
+    <div class="cols">
+      <div class="bad">
+        <span class="tag">✗ 화면마다 하드코딩</span>
+        <svg width="100%" viewBox="0 0 300 118">
+          <g font-family="-apple-system, sans-serif" font-size="11">
+            <rect x="2" y="10" width="88" height="42" rx="8" fill="#fff" stroke="#e8c9c6"/>
+            <text x="46" y="28" text-anchor="middle" fill="#1c1b1f">홈</text>
+            <text x="46" y="43" text-anchor="middle" fill="#b3261e" font-size="10">별빛… 4.5</text>
+            <rect x="106" y="10" width="88" height="42" rx="8" fill="#fff" stroke="#e8c9c6"/>
+            <text x="150" y="28" text-anchor="middle">목록</text>
+            <text x="150" y="43" text-anchor="middle" fill="#b3261e" font-size="10">별빛… 4.2</text>
+            <rect x="210" y="10" width="88" height="42" rx="8" fill="#fff" stroke="#e8c9c6"/>
+            <text x="254" y="28" text-anchor="middle">상세</text>
+            <text x="254" y="43" text-anchor="middle" fill="#b3261e" font-size="10">별빛… 없음</text>
+            <text x="150" y="80" text-anchor="middle" fill="#b3261e" font-size="11.5">같은 영화인데 값이 제각각</text>
+            <text x="150" y="99" text-anchor="middle" fill="#8c8894" font-size="10.5">하나 고치면 나머지 두 곳도 찾아 고쳐야 한다</text>
+          </g>
+        </svg>
+      </div>
+      <div class="good">
+        <span class="tag">✓ mock_movies.dart 한 곳</span>
+        <svg width="100%" viewBox="0 0 300 118">
+          <g font-family="-apple-system, sans-serif" font-size="11">
+            <rect x="70" y="6" width="160" height="30" rx="8" fill="#fff" stroke="#b9dcc6"/>
+            <text x="150" y="25" text-anchor="middle" font-family="ui-monospace, Menlo" font-size="10.5">movies = [ id 1 … id 6 ]</text>
+            <path d="M150 36 L150 48 M46 48 L254 48 M46 48 L46 62 M150 48 L150 62 M254 48 L254 62"
+                  stroke="#7cb894" stroke-width="1.4" fill="none"/>
+            <path d="M46 62 l-3.5 -6 h7 z M150 62 l-3.5 -6 h7 z M254 62 l-3.5 -6 h7 z" fill="#7cb894"/>
+            <rect x="8" y="62" width="76" height="30" rx="8" fill="#fff" stroke="#b9dcc6"/>
+            <text x="46" y="81" text-anchor="middle">홈</text>
+            <rect x="112" y="62" width="76" height="30" rx="8" fill="#fff" stroke="#b9dcc6"/>
+            <text x="150" y="81" text-anchor="middle">목록</text>
+            <rect x="216" y="62" width="76" height="30" rx="8" fill="#fff" stroke="#b9dcc6"/>
+            <text x="254" y="81" text-anchor="middle">상세</text>
+            <text x="150" y="110" text-anchor="middle" fill="#1a7f37" font-size="11.5">한 곳만 고치면 세 화면이 같이 바뀐다</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+    <div class="take"><b>기억할 것 —</b> 데이터는 한 곳에 두고, 화면은 <b>읽기만</b> 한다.</div>
+  </section>
+
+  <section>
+    <h2><span class="num">2</span>없는 영화 ID로 들어오면?</h2>
+    <p class="sub">주소창에 <code>/movies/999</code>를 직접 칠 수도 있다. 그래서 찾기 함수는 <code>Movie?</code>(물음표 = 없을 수도 있음)를 돌려준다.</p>
+    <div class="fig">
+      <svg width="100%" viewBox="0 0 640 96">
+        <g font-family="-apple-system, sans-serif" font-size="12">
+          <rect x="0" y="16" width="150" height="38" rx="9" fill="#fff" stroke="#ddd8e8"/>
+          <text x="75" y="40" text-anchor="middle" font-family="ui-monospace, Menlo" font-size="11.5">/movies/999</text>
+          <path d="M152 35 h44" stroke="#b6aecd" stroke-width="1.4"/><path d="M198 35 l-7 -4 v8 z" fill="#b6aecd"/>
+          <rect x="202" y="16" width="176" height="38" rx="9" fill="#fff" stroke="#ddd8e8"/>
+          <text x="290" y="40" text-anchor="middle" font-family="ui-monospace, Menlo" font-size="11.5">findMovieById(999)</text>
+          <path d="M380 35 h44" stroke="#b6aecd" stroke-width="1.4"/><path d="M426 35 l-7 -4 v8 z" fill="#b6aecd"/>
+          <rect x="430" y="6" width="96" height="28" rx="8" fill="#f4f1fa" stroke="#d6cdec"/>
+          <text x="478" y="25" text-anchor="middle" font-family="ui-monospace, Menlo" font-size="11.5">null</text>
+          <path d="M528 20 h30" stroke="#b6aecd" stroke-width="1.4"/><path d="M560 20 l-7 -4 v8 z" fill="#b6aecd"/>
+          <text x="566" y="24" font-size="11.5" fill="#1a7f37">✓ "찾을 수 없어요" 화면</text>
+          <rect x="430" y="42" width="96" height="28" rx="8" fill="#fdf3f2" stroke="#f3d7d4"/>
+          <text x="478" y="61" text-anchor="middle" font-family="ui-monospace, Menlo" font-size="11.5">movie!</text>
+          <path d="M528 56 h30" stroke="#e8bdb8" stroke-width="1.4"/><path d="M560 56 l-7 -4 v8 z" fill="#e8bdb8"/>
+          <text x="566" y="60" font-size="11.5" fill="#b3261e">✗ 앱이 죽는다</text>
+        </g>
+      </svg>
+      <div class="note"><code>!</code>는 "절대 null 아님"이라고 단언하는 표시다. 단언이 틀리면 그 자리에서 앱이 멈춘다. 없을 수 있는 값은 <b>null로 받고 화면에서 처리</b>한다.</div>
+    </div>
+  </section>
+
+  <div class="foot">UMC 11기 · 3주차 스터디 담당 파트 · 이석태(태이)</div>
+</div>
+
+<!-- ===================== FE 2 ===================== -->
+<div class="page fe">
+  <div class="kicker">3주차 담당 · FRONTEND</div>
+  <h1>목록 위젯 세 개는<br><strong>딱 한 가지씩만 다르다</strong></h1>
+  <p class="lead">셋 다 <code>itemCount</code>(몇 개)와 <code>itemBuilder</code>(하나를 어떻게 그릴지)를 받는다. 여기까지는 완전히 같다.</p>
+  <div class="rule"></div>
+
+  <section>
+    <div class="cols">
+      <div class="card">
+        <h3>ListView.builder</h3>
+        <svg width="100%" viewBox="0 0 150 116">
+          <rect x="15" y="10" width="120" height="26" rx="6" fill="#f4f1fa" stroke="#d6cdec"/>
+          <rect x="15" y="46" width="120" height="26" rx="6" fill="#f4f1fa" stroke="#d6cdec"/>
+          <rect x="15" y="82" width="120" height="26" rx="6" fill="#f4f1fa" stroke="#d6cdec"/>
+        </svg>
+        <div class="when">한 방향으로 <b>그냥 나열</b>한다.</div>
+        <div class="mine">내 화면: 없음</div>
+      </div>
+      <div class="card">
+        <h3>ListView.separated</h3>
+        <svg width="100%" viewBox="0 0 150 116">
+          <rect x="15" y="2" width="120" height="24" rx="6" fill="#f4f1fa" stroke="#d6cdec"/>
+          <line x1="15" y1="35" x2="135" y2="35" stroke="#6750A4" stroke-width="2"/>
+          <text x="140" y="39" font-size="9" fill="#6750A4" font-family="-apple-system">①</text>
+          <rect x="15" y="43" width="120" height="24" rx="6" fill="#f4f1fa" stroke="#d6cdec"/>
+          <line x1="15" y1="76" x2="135" y2="76" stroke="#6750A4" stroke-width="2"/>
+          <text x="140" y="80" font-size="9" fill="#6750A4" font-family="-apple-system">②</text>
+          <rect x="15" y="84" width="120" height="24" rx="6" fill="#f4f1fa" stroke="#d6cdec"/>
+        </svg>
+        <div class="when">항목 <b>사이</b>에 간격·구분선을 넣는다.</div>
+        <div class="only">항목 3개 → 사이는 2번</div>
+        <div class="mine">내 화면: 홈 가로 줄(12px), 장르 Chip 줄(8px)</div>
+      </div>
+      <div class="card">
+        <h3>GridView.builder</h3>
+        <svg width="100%" viewBox="0 0 150 116">
+          <rect x="12" y="8" width="58" height="44" rx="6" fill="#f4f1fa" stroke="#d6cdec"/>
+          <rect x="80" y="8" width="58" height="44" rx="6" fill="#f4f1fa" stroke="#d6cdec"/>
+          <rect x="12" y="62" width="58" height="44" rx="6" fill="#f4f1fa" stroke="#d6cdec"/>
+          <rect x="80" y="62" width="58" height="44" rx="6" fill="#f4f1fa" stroke="#d6cdec"/>
+          <line x1="70" y1="30" x2="80" y2="30" stroke="#6750A4" stroke-width="2"/>
+        </svg>
+        <div class="when">한 줄에 <b>2개 이상</b> 배치한다.</div>
+        <div class="only">gridDelegate 하나가 더 붙는다</div>
+        <div class="mine">내 화면: 영화 목록 2열</div>
+      </div>
+    </div>
+    <div class="take"><b>고르는 기준 —</b> 사이에 뭔가 넣고 싶으면 <code>separated</code>, 한 줄에 여러 개면 <code>GridView</code>, 나머지는 <code>builder</code>.</div>
+  </section>
+
+  <section>
+    <h2><span class="num">3</span>왜 <span class="mono">.builder</span>를 쓰나</h2>
+    <p class="sub">영화가 6개든 600개든, <b>화면에 보이는 것만</b> 그린다. 한 번에 다 만들지 않아서 스크롤이 끊기지 않는다.</p>
+    <div class="fig">
+      <svg width="100%" viewBox="0 0 640 74">
+        <g font-family="-apple-system, sans-serif" font-size="11.5">
+          <rect x="10" y="10" width="150" height="54" rx="10" fill="#fff" stroke="#ddd8e8"/>
+          <text x="85" y="32" text-anchor="middle" fill="#6b6672">화면(보이는 곳)</text>
+          <text x="85" y="52" text-anchor="middle" fill="#6750A4" font-size="12">카드 4장만 생성</text>
+          <path d="M164 37 h40" stroke="#b6aecd" stroke-width="1.4"/><path d="M206 37 l-7 -4 v8 z" fill="#b6aecd"/>
+          <text x="216" y="41" fill="#6b6672">스크롤하면 그때 다음 카드를 만든다 — 600개여도 처음 비용은 같다</text>
+        </g>
+      </svg>
+    </div>
+  </section>
+
+  <div class="foot">UMC 11기 · 3주차 스터디 담당 파트 · 이석태(태이)</div>
+</div>
+
+<!-- ===================== FE 3 ===================== -->
+<div class="page fe">
+  <div class="kicker">3주차 담당 · FRONTEND</div>
+  <h1>여기서 꼭 한 번은 막힌다<br><strong>가로 목록 · 카드 비율</strong></h1>
+  <div class="rule"></div>
+
+  <section>
+    <h2><span class="num">4</span>가로 목록은 높이를 아무도 안 정해 준다</h2>
+    <p class="sub">세로 목록은 부모가 높이를 준다. 가로 목록은 "위아래로 얼마나 차지할지"를 아무도 모른다 → 에러가 난다.</p>
+    <div class="cols">
+      <div class="bad">
+        <span class="tag">✗ Column 안에 바로 가로 ListView</span>
+        <svg width="100%" viewBox="0 0 280 86">
+          <rect x="10" y="8" width="260" height="60" rx="10" fill="#fff" stroke="#e8c9c6" stroke-dasharray="5 4"/>
+          <text x="140" y="34" text-anchor="middle" font-size="12" font-family="-apple-system" fill="#b3261e">높이 = ?</text>
+          <text x="140" y="52" text-anchor="middle" font-size="11" font-family="-apple-system" fill="#8c8894">(정해지지 않음)</text>
+          <text x="140" y="81" text-anchor="middle" font-size="11" font-family="ui-monospace, Menlo" fill="#b3261e">unbounded height 에러</text>
+        </svg>
+      </div>
+      <div class="good">
+        <span class="tag">✓ SizedBox로 높이를 정해 준다</span>
+        <svg width="100%" viewBox="0 0 280 86">
+          <rect x="10" y="8" width="260" height="60" rx="10" fill="#fff" stroke="#b9dcc6"/>
+          <rect x="22" y="18" width="52" height="40" rx="6" fill="#f1f8f3" stroke="#cfe7d7"/>
+          <rect x="82" y="18" width="52" height="40" rx="6" fill="#f1f8f3" stroke="#cfe7d7"/>
+          <rect x="142" y="18" width="52" height="40" rx="6" fill="#f1f8f3" stroke="#cfe7d7"/>
+          <rect x="202" y="18" width="34" height="40" rx="6" fill="#f1f8f3" stroke="#cfe7d7"/>
+          <path d="M244 38 h14" stroke="#7cb894" stroke-width="1.6"/><path d="M260 38 l-7 -4 v8 z" fill="#7cb894"/>
+          <text x="140" y="81" text-anchor="middle" font-size="11" font-family="ui-monospace, Menlo" fill="#1a7f37">SizedBox(height: 236)</text>
+        </svg>
+      </div>
+    </div>
+    <div class="note">카드 <b>너비</b>도 같은 이유로 직접 정한다 — <code>MovieCard(width: 136)</code>. 세로 목록에서는 둘 다 신경 쓸 일이 없다.</div>
+  </section>
+
+  <section>
+    <h2><span class="num">5</span>childAspectRatio = 가로 ÷ 세로</h2>
+    <p class="sub">칸의 <b>모양(비율)</b>만 정한다. 실제 크기는 화면 너비에 맞춰 따라온다. <b>값이 작을수록 세로로 길어진다.</b></p>
+    <div class="fig">
+      <div class="cols" style="align-items:flex-end">
+        <div style="text-align:center">
+          <svg width="100%" viewBox="0 0 150 150">
+            <rect x="35" y="14" width="80" height="100" rx="8" fill="#fff" stroke="#e8c9c6"/>
+            <rect x="35" y="14" width="80" height="78" rx="8" fill="#f4f1fa" stroke="#e8c9c6"/>
+            <line x1="41" y1="102" x2="101" y2="102" stroke="#cfc8dd" stroke-width="4"/>
+            <line x1="41" y1="112" x2="76" y2="112" stroke="#f3d7d4" stroke-width="4"/>
+            <text x="75" y="137" text-anchor="middle" font-size="12" font-family="ui-monospace, Menlo" fill="#b3261e">0.8</text>
+          </svg>
+          <div style="font-size:12px;color:#b3261e;margin-top:-6px">제목이 잘린다</div>
+        </div>
+        <div style="text-align:center">
+          <svg width="100%" viewBox="0 0 150 150">
+            <rect x="35" y="2" width="80" height="124" rx="8" fill="#fff" stroke="#cfe7d7"/>
+            <rect x="35" y="2" width="80" height="88" rx="8" fill="#f1f8f3" stroke="#cfe7d7"/>
+            <line x1="41" y1="102" x2="101" y2="102" stroke="#c3ddcd" stroke-width="4"/>
+            <line x1="41" y1="113" x2="76" y2="113" stroke="#d9ead f" stroke-width="4"/>
+            <text x="75" y="145" text-anchor="middle" font-size="12" font-family="ui-monospace, Menlo" fill="#1a7f37">0.6 ✓</text>
+          </svg>
+        </div>
+        <div style="flex:1.6">
+          <div style="font-size:14.5px;line-height:1.85">
+            포스터는 보통 <b>2 : 3</b> → 약 <code>0.67</code><br>
+            여기에 <b>제목·장르 두 줄</b>이 더 붙는다<br>
+            → 그래서 0.67보다 <b>작은 값</b>이 필요하다
+          </div>
+          <div class="take" style="margin-top:14px"><b>글자가 잘리면?</b> 값을 더 줄인다. (0.7 → 0.6)</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot">UMC 11기 · 3주차 스터디 담당 파트 · 이석태(태이)</div>
+</div>
+
+<!-- ===================== BE 1 ===================== -->
+<div class="page be">
+  <div class="kicker">3주차 담당 · BACKEND</div>
+  <h1>커넥션 풀 —<br><strong>연결을 미리 뚫어 두고 빌려 쓴다</strong></h1>
+  <p class="lead">DB에 "연결하는 시간"이 정작 "쿼리 실행 시간"보다 훨씬 길다. 이 낭비를 없애는 게 커넥션 풀이다.</p>
+  <div class="rule"></div>
+
+  <section>
+    <h2><span class="num">1</span>요청마다 새로 연결하면 무슨 일이 생기나</h2>
+    <p class="sub">DB 연결 한 번은 <b>TCP 연결 → 로그인 인증 → 세션 준비</b>를 거친다. 여기에 수십 ms가 든다. 정작 쿼리는 1ms면 끝난다.</p>
+    <div class="fig">
+      <svg width="100%" viewBox="0 0 640 176">
+        <g font-family="-apple-system, sans-serif" font-size="11.5">
+          <text x="0" y="14" fill="#b3261e" font-weight="700">풀 없음 — 요청마다 새로 연결</text>
+          <rect x="0" y="24" width="180" height="26" rx="6" fill="#fdf3f2" stroke="#f3d7d4"/>
+          <text x="90" y="41" text-anchor="middle" font-size="10.5" fill="#8a4a44">연결 준비 (TCP·인증·세션)</text>
+          <rect x="182" y="24" width="16" height="26" rx="4" fill="#1a7f37"/>
+          <rect x="200" y="24" width="30" height="26" rx="6" fill="#f7e6e4"/>
+          <text x="215" y="41" text-anchor="middle" font-size="10" fill="#8a4a44">종료</text>
+          <rect x="240" y="24" width="180" height="26" rx="6" fill="#fdf3f2" stroke="#f3d7d4"/>
+          <text x="330" y="41" text-anchor="middle" font-size="10.5" fill="#8a4a44">연결 준비 (TCP·인증·세션)</text>
+          <rect x="422" y="24" width="16" height="26" rx="4" fill="#1a7f37"/>
+          <rect x="440" y="24" width="30" height="26" rx="6" fill="#f7e6e4"/>
+          <text x="455" y="41" text-anchor="middle" font-size="10" fill="#8a4a44">종료</text>
+          <text x="484" y="41" font-size="11.5" fill="#b3261e">2건 처리</text>
+
+          <text x="0" y="86" fill="#1a7f37" font-weight="700">커넥션 풀 — 미리 뚫어 두고 빌려 씀</text>
+          <g>
+            <rect x="0" y="96" width="46" height="26" rx="6" fill="#eef7f1" stroke="#cfe7d7"/>
+            <text x="23" y="113" text-anchor="middle" font-size="10" fill="#2f6b45">빌림</text>
+            <rect x="48" y="96" width="16" height="26" rx="4" fill="#1a7f37"/>
+            <rect x="66" y="96" width="46" height="26" rx="6" fill="#eef7f1" stroke="#cfe7d7"/>
+            <text x="89" y="113" text-anchor="middle" font-size="10" fill="#2f6b45">반납</text>
+          </g>
+          <g transform="translate(120,0)">
+            <rect x="0" y="96" width="46" height="26" rx="6" fill="#eef7f1" stroke="#cfe7d7"/>
+            <rect x="48" y="96" width="16" height="26" rx="4" fill="#1a7f37"/>
+            <rect x="66" y="96" width="46" height="26" rx="6" fill="#eef7f1" stroke="#cfe7d7"/>
+          </g>
+          <g transform="translate(240,0)">
+            <rect x="0" y="96" width="46" height="26" rx="6" fill="#eef7f1" stroke="#cfe7d7"/>
+            <rect x="48" y="96" width="16" height="26" rx="4" fill="#1a7f37"/>
+            <rect x="66" y="96" width="46" height="26" rx="6" fill="#eef7f1" stroke="#cfe7d7"/>
+          </g>
+          <g transform="translate(360,0)">
+            <rect x="0" y="96" width="46" height="26" rx="6" fill="#eef7f1" stroke="#cfe7d7"/>
+            <rect x="48" y="96" width="16" height="26" rx="4" fill="#1a7f37"/>
+            <rect x="66" y="96" width="46" height="26" rx="6" fill="#eef7f1" stroke="#cfe7d7"/>
+          </g>
+          <text x="484" y="113" font-size="11.5" fill="#1a7f37">같은 시간에 4건</text>
+
+          <rect x="0" y="146" width="16" height="14" rx="3" fill="#1a7f37"/>
+          <text x="24" y="157" font-size="11" fill="#6b6672">= 실제 쿼리(1ms). 나머지는 전부 연결을 준비하고 닫는 시간이다.</text>
+        </g>
+      </svg>
+    </div>
+    <div class="take"><b>핵심 —</b> 풀은 쿼리를 빠르게 만드는 게 아니다. <b>연결 준비 시간을 요청 경로에서 빼는 것</b>이다.</div>
+  </section>
+
+  <section>
+    <h2><span class="num">2</span>동작 방식</h2>
+    <p class="sub">서버가 켜지면 연결을 몇 개 만들어 바구니에 담아 둔다. 요청이 오면 <b>빌려 쓰고 반드시 돌려준다.</b></p>
+    <div class="fig">
+      <svg width="100%" viewBox="0 0 640 196">
+        <g font-family="-apple-system, sans-serif" font-size="12">
+          <rect x="0" y="46" width="118" height="80" rx="12" fill="#fff" stroke="#dde9e1"/>
+          <text x="59" y="82" text-anchor="middle">서버</text>
+          <text x="59" y="100" text-anchor="middle" font-size="10.5" fill="#6b6672">요청 처리</text>
+
+          <path d="M120 72 h100" stroke="#7cb894" stroke-width="1.6"/><path d="M222 72 l-8 -4 v8 z" fill="#7cb894"/>
+          <text x="170" y="65" text-anchor="middle" font-size="11" fill="#2f6b45">빌림</text>
+          <path d="M222 104 h-100" stroke="#7cb894" stroke-width="1.6"/><path d="M120 104 l8 -4 v8 z" fill="#7cb894"/>
+          <text x="170" y="120" text-anchor="middle" font-size="11" fill="#2f6b45">반납</text>
+
+          <rect x="226" y="24" width="230" height="124" rx="14" fill="#f7faf8" stroke="#1a7f37" stroke-width="1.4"/>
+          <text x="341" y="48" text-anchor="middle" font-size="12.5" fill="#1a7f37" font-weight="700">Connection Pool (10개)</text>
+          <g>
+            <circle cx="262" cy="88" r="11" fill="#1a7f37"/><circle cx="294" cy="88" r="11" fill="#1a7f37"/>
+            <circle cx="326" cy="88" r="11" fill="#1a7f37"/><circle cx="358" cy="88" r="11" fill="#fff" stroke="#9cc7ac" stroke-width="1.6"/>
+            <circle cx="390" cy="88" r="11" fill="#fff" stroke="#9cc7ac" stroke-width="1.6"/>
+            <circle cx="422" cy="88" r="11" fill="#1a7f37"/>
+          </g>
+          <text x="341" y="124" text-anchor="middle" font-size="11" fill="#2f6b45">● 대기 중 &nbsp;&nbsp; ○ 빌려 나감</text>
+          <text x="341" y="140" text-anchor="middle" font-size="10.5" fill="#6b6672">다 나가면 다음 요청은 줄 서서 대기</text>
+
+          <path d="M458 86 h56" stroke="#7cb894" stroke-width="1.6"/><path d="M516 86 l-8 -4 v8 z" fill="#7cb894"/>
+          <rect x="520" y="46" width="118" height="80" rx="12" fill="#fff" stroke="#dde9e1"/>
+          <text x="579" y="82" text-anchor="middle">MySQL</text>
+          <text x="579" y="100" text-anchor="middle" font-size="10.5" fill="#6b6672">DB</text>
+
+          <text x="320" y="178" text-anchor="middle" font-size="11" fill="#6b6672" font-family="ui-monospace, Menlo">connectionLimit 10 · waitForConnections true · queueLimit 0</text>
+        </g>
+      </svg>
+    </div>
+  </section>
+
+
+  <div class="foot">UMC 11기 · 3주차 스터디 담당 파트 · 이석태(태이)</div>
+</div>
+
+<!-- ===================== BE 2 ===================== -->
+<div class="page be">
+  <div class="kicker">3주차 담당 · BACKEND</div>
+  <h1>설정은 <strong>거의 없다</strong><br>Spring이 대신 만들어 준다</h1>
+  <p class="lead">풀을 직접 만들 일은 없다. 대신 <b>언제 만들어지는지</b>와 <b>어떻게 관리되는지</b>는 알아야 한다.</p>
+  <div class="rule"></div>
+
+  <section>
+    <h2><span class="num">3</span>Spring은 자동이다</h2>
+    <p class="sub">Spring Boot에는 <b>HikariCP</b>라는 풀이 이미 들어 있다. 아래 설정만 쓰면 풀이 저절로 만들어진다. (NestJS는 <code>mysql2</code>의 <code>createPool</code>을 직접 조립한다)</p>
+    <div class="fig">
+      <pre class="mono" style="line-height:1.7;color:#2f4f3a"># application.yml — Spring은 이게 전부다
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/book_rental
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:}</pre>
+      <div class="note">우리가 쓴 <code>JdbcTemplate</code>은 <b>풀에서 빌리고 → 쿼리하고 → 반납</b>까지 알아서 한다. 그래서 Repository에서 연결을 직접 열 일이 없다.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">4</span>기동 로그에 Hikari가 없다고 실패가 아니다</h2>
+    <p class="sub">풀은 서버가 켜질 때가 아니라 <b>첫 쿼리가 필요할 때</b> 만들어진다(lazy 초기화).</p>
+    <div class="fig">
+      <svg width="100%" viewBox="0 0 640 104">
+        <g font-family="-apple-system, sans-serif" font-size="11.5">
+          <line x1="40" y1="42" x2="600" y2="42" stroke="#dde9e1" stroke-width="2"/>
+          <circle cx="60" cy="42" r="7" fill="#9cc7ac"/>
+          <text x="60" y="26" text-anchor="middle" fill="#1c1b1f">서버 기동</text>
+          <text x="60" y="64" text-anchor="middle" font-size="10.5" fill="#8c8894">Hikari 로그</text>
+          <text x="60" y="78" text-anchor="middle" font-size="10.5" fill="#8c8894">아직 없음</text>
+
+          <circle cx="300" cy="42" r="8" fill="#1a7f37"/>
+          <text x="300" y="26" text-anchor="middle" font-family="ui-monospace, Menlo" font-size="11.5">GET /books</text>
+          <text x="300" y="64" text-anchor="middle" font-size="10.5" fill="#1a7f37">이때 풀 생성</text>
+          <text x="300" y="78" text-anchor="middle" font-family="ui-monospace, Menlo" font-size="10" fill="#1a7f37">HikariPool-1 Start completed</text>
+
+          <circle cx="560" cy="42" r="7" fill="#9cc7ac"/>
+          <text x="560" y="26" text-anchor="middle">이후 요청</text>
+          <text x="560" y="64" text-anchor="middle" font-size="10.5" fill="#8c8894">풀에서 빌리기만</text>
+        </g>
+      </svg>
+    </div>
+  </section>
+
+
+  <div class="foot">UMC 11기 · 3주차 스터디 담당 파트 · 이석태(태이)</div>
+</div>
+
+<!-- ===================== BE 3 ===================== -->
+<div class="page be">
+  <div class="kicker">3주차 담당 · 마무리</div>
+  <h1><strong>조심할 것 둘</strong>,<br>그리고 오늘 한 장 요약</h1>
+  <div class="rule"></div>
+
+  <section>
+    <h2><span class="num">5</span>조심할 것 두 가지</h2>
+    <div class="cols">
+      <div class="bad">
+        <span class="tag">커넥션 누수</span>
+        <div style="font-size:13.5px;line-height:1.75">
+          빌린 연결을 돌려주지 않으면 바구니가 비고,
+          <b>모든 요청이 줄만 서다가 서버 전체가 멈춘다.</b>
+          <div style="margin-top:10px;padding-top:10px;border-top:1px dashed #f0d5d1">
+            최선의 방어는 <b>직접 열고 닫지 않는 것</b> — <code>JdbcTemplate</code>에 맡긴다.
+          </div>
+        </div>
+      </div>
+      <div class="good">
+        <span class="tag">풀은 클수록 좋은가 → 아니다</span>
+        <div style="font-size:13.5px;line-height:1.75">
+          연결 하나마다 <b>DB 쪽에도</b> 스레드와 메모리가 붙는다.
+          서버를 여러 대 띄우면 DB의 <code>max_connections</code>를 넘겨 오히려 죽는다.
+          <div style="margin-top:10px;padding-top:10px;border-top:1px dashed #d5e8dc">
+            기본 <b>10</b>에서 시작해 측정하고 조정한다.
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="take"><b>한 줄 정리 —</b> 풀은 <b>빌리고 반드시 반납하는</b> 한정된 자원이다. 크기는 DB가 감당할 만큼만.</div>
+  </section>
+
+  <section>
+    <h2><span class="num">6</span>오늘 담당 파트 한 장 요약</h2>
+    <div class="cols">
+      <div class="fig" style="background:#faf9fc;border-color:#e8e5ee">
+        <div style="font-size:12px;font-weight:700;letter-spacing:.1em;color:#6750A4;margin-bottom:12px">FRONTEND</div>
+        <div style="font-size:13.5px;line-height:2">
+          · 데이터는 <b>한 곳</b>에, 화면은 읽기만<br>
+          · 없을 수 있으면 <code>Movie?</code> — <code>!</code>는 앱을 죽인다<br>
+          · 사이에 뭘 넣으면 <code>separated</code>, 여러 열이면 <code>GridView</code><br>
+          · 가로 목록은 <b>높이를 직접</b> 준다<br>
+          · <code>childAspectRatio</code>는 작을수록 세로로 길다
+        </div>
+      </div>
+      <div class="fig">
+        <div style="font-size:12px;font-weight:700;letter-spacing:.1em;color:#1a7f37;margin-bottom:12px">BACKEND</div>
+        <div style="font-size:13.5px;line-height:2">
+          · 느린 건 쿼리가 아니라 <b>연결 준비</b><br>
+          · 풀 = 미리 뚫어 두고 <b>빌리고 반납</b>하는 바구니<br>
+          · Spring은 <b>HikariCP 자동</b>, 설정은 datasource뿐<br>
+          · 풀은 <b>첫 쿼리 때</b> 만들어진다(lazy)<br>
+          · 반납 안 하면 서버가 멈춘다 · 크기는 DB가 감당할 만큼
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot">UMC 11기 · 3주차 스터디 담당 파트 · 이석태(태이)</div>
+</div>
+
+</body>
+</html>
