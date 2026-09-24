@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
 
 /// MovieLog의 첫 화면.
 ///
@@ -52,8 +53,9 @@ class StartScreen extends StatelessWidget {
               const Spacer(flex: 3),
               ElevatedButton(
                 onPressed: () {
-                  // 0주차에는 화면 이동 없이 로그만 출력한다.
-                  debugPrint('시작하기 버튼을 눌렀습니다.');
+                  // go는 현재 Route 위치를 '/register'로 바꾼다.
+                  // push와 달리 시작 화면이 Stack에 남지 않으므로 뒤로 가기로 돌아올 수 없다.
+                  context.go('/register');
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: colorScheme.primary,

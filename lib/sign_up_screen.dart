@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import 'widgets/common_app_bar.dart';
 import 'widgets/movie_log_text_form_field.dart';
@@ -92,8 +93,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('${_nicknameController.text.trim()}님, 가입을 환영합니다!'),
+        behavior: SnackBarBehavior.floating,
       ),
     );
+
+    // 가입이 끝나면 홈으로. push가 아니라 go라서 회원가입 화면이 Stack에 남지 않는다.
+    context.go('/home');
   }
 
   @override
@@ -105,103 +110,108 @@ class _SignUpScreenState extends State<SignUpScreen> {
         _passwordController.text.length >= 8 &&
         _agreedToTerms;
 
-    return Scaffold(
-      appBar: const CommonAppBar(title: '회원가입'),
-      body: SafeArea(
-        // MediaQuery(창 전체)가 아니라 부모가 실제로 준 너비로 분기한다.
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final maxFormWidth = constraints.maxWidth >= 700
-                ? 560.0
-                : double.infinity;
+    // 시작 화면에서 go로 왔으므로 Stack에 이전 화면이 없지만,
+    // Android 뒤로 가기로 앱이 닫히는 것까지 막기 위해 PopScope로 감싼다.
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        appBar: const CommonAppBar(title: '회원가입'),
+        body: SafeArea(
+          // MediaQuery(창 전체)가 아니라 부모가 실제로 준 너비로 분기한다.
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final maxFormWidth = constraints.maxWidth >= 700
+                  ? 560.0
+                  : double.infinity;
 
-            // 가로만 가운데 정렬한다. Center를 쓰면 세로도 가운데로 가서 위가 비어 보인다.
-            return Align(
-              alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: maxFormWidth),
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  // 드래그로 스크롤하면 키보드를 닫는다.
-                  keyboardDismissBehavior:
-                      ScrollViewKeyboardDismissBehavior.onDrag,
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        MovieLogTextFormField(
-                          controller: _nicknameController,
-                          labelText: '닉네임',
-                          hintText: '두 글자 이상 입력',
-                          prefixIcon: Icons.person_outline,
-                          validator: _validateNickname,
-                          // 버튼 활성화 조건이 최신 입력값을 읽도록 화면을 다시 그린다.
-                          onChanged: (_) => setState(() {}),
-                          onFieldSubmitted: (_) =>
-                              _emailFocusNode.requestFocus(),
-                        ),
-                        const SizedBox(height: 16),
-                        MovieLogTextFormField(
-                          controller: _emailController,
-                          focusNode: _emailFocusNode,
-                          labelText: '이메일',
-                          hintText: 'movielog@example.com',
-                          prefixIcon: Icons.mail_outline,
-                          keyboardType: TextInputType.emailAddress,
-                          validator: _validateEmail,
-                          onChanged: (_) => setState(() {}),
-                          onFieldSubmitted: (_) =>
-                              _passwordFocusNode.requestFocus(),
-                        ),
-                        const SizedBox(height: 16),
-                        MovieLogTextFormField(
-                          controller: _passwordController,
-                          focusNode: _passwordFocusNode,
-                          labelText: '비밀번호',
-                          hintText: '8자 이상 입력',
-                          prefixIcon: Icons.lock_outline,
-                          obscureText: _obscurePassword,
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility_off_outlined
-                                  : Icons.visibility_outlined,
+              // 가로만 가운데 정렬한다. Center를 쓰면 세로도 가운데로 가서 위가 비어 보인다.
+              return Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: maxFormWidth),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    // 드래그로 스크롤하면 키보드를 닫는다.
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          MovieLogTextFormField(
+                            controller: _nicknameController,
+                            labelText: '닉네임',
+                            hintText: '두 글자 이상 입력',
+                            prefixIcon: Icons.person_outline,
+                            validator: _validateNickname,
+                            // 버튼 활성화 조건이 최신 입력값을 읽도록 화면을 다시 그린다.
+                            onChanged: (_) => setState(() {}),
+                            onFieldSubmitted: (_) =>
+                                _emailFocusNode.requestFocus(),
+                          ),
+                          const SizedBox(height: 16),
+                          MovieLogTextFormField(
+                            controller: _emailController,
+                            focusNode: _emailFocusNode,
+                            labelText: '이메일',
+                            hintText: 'movielog@example.com',
+                            prefixIcon: Icons.mail_outline,
+                            keyboardType: TextInputType.emailAddress,
+                            validator: _validateEmail,
+                            onChanged: (_) => setState(() {}),
+                            onFieldSubmitted: (_) =>
+                                _passwordFocusNode.requestFocus(),
+                          ),
+                          const SizedBox(height: 16),
+                          MovieLogTextFormField(
+                            controller: _passwordController,
+                            focusNode: _passwordFocusNode,
+                            labelText: '비밀번호',
+                            hintText: '8자 이상 입력',
+                            prefixIcon: Icons.lock_outline,
+                            obscureText: _obscurePassword,
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                              ),
+                              tooltip: _obscurePassword ? '비밀번호 표시' : '비밀번호 숨김',
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
                             ),
-                            tooltip: _obscurePassword ? '비밀번호 표시' : '비밀번호 숨김',
-                            onPressed: () {
+                            // 마지막 필드이므로 완료 버튼으로 키보드를 닫는다.
+                            textInputAction: TextInputAction.done,
+                            validator: _validatePassword,
+                            onChanged: (_) => setState(() {}),
+                            onFieldSubmitted: (_) =>
+                                FocusScope.of(context).unfocus(),
+                          ),
+                          const SizedBox(height: 24),
+                          TermsCheckbox(
+                            value: _agreedToTerms,
+                            onChanged: (value) {
                               setState(() {
-                                _obscurePassword = !_obscurePassword;
+                                // value는 bool?이므로 null이면 false로 처리한다.
+                                _agreedToTerms = value ?? false;
                               });
                             },
                           ),
-                          // 마지막 필드이므로 완료 버튼으로 키보드를 닫는다.
-                          textInputAction: TextInputAction.done,
-                          validator: _validatePassword,
-                          onChanged: (_) => setState(() {}),
-                          onFieldSubmitted: (_) =>
-                              FocusScope.of(context).unfocus(),
-                        ),
-                        const SizedBox(height: 24),
-                        TermsCheckbox(
-                          value: _agreedToTerms,
-                          onChanged: (value) {
-                            setState(() {
-                              // value는 bool?이므로 null이면 false로 처리한다.
-                              _agreedToTerms = value ?? false;
-                            });
-                          },
-                        ),
-                        const SizedBox(height: 24),
-                        // onPressed가 null이면 버튼이 비활성화된다.
-                        SignUpButton(onPressed: canSubmit ? _submit : null),
-                      ],
+                          const SizedBox(height: 24),
+                          // onPressed가 null이면 버튼이 비활성화된다.
+                          SignUpButton(onPressed: canSubmit ? _submit : null),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );
