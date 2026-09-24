@@ -2,7 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:go_router/go_router.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 import 'package:movielog/home_screen.dart';
 import 'package:movielog/movie_detail_screen.dart';
@@ -16,6 +17,13 @@ import 'package:movielog/widgets/movie_card.dart';
 import 'package:movielog/widgets/rating_dialog.dart';
 
 void main() {
+  // 4주차: 영화 목록 화면이 SharedPreferencesAsync로 마지막 장르를 읽는다.
+  // 테스트에는 기기 저장소가 없으므로 메모리 저장소로 바꿔 끼우고, 테스트마다 비운다.
+  setUp(() {
+    SharedPreferencesAsyncPlatform.instance =
+        InMemorySharedPreferencesAsync.empty();
+  });
+
   // AppRouter.router는 앱 전체에 하나뿐(static)이라 테스트 사이에 위치가 남는다.
   // 각 테스트가 원하는 위치에서 시작하도록 직접 옮긴다.
   Future<void> pumpAppAt(WidgetTester tester, String location) async {
