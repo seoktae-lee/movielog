@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:movielog/profile_screen.dart';
-import 'package:movielog/sign_up_screen.dart';
-import 'package:movielog/start_screen.dart';
+import 'package:movielog/screens/profile_screen.dart';
+import 'package:movielog/screens/sign_up_screen.dart';
+import 'package:movielog/screens/start_screen.dart';
 import 'package:movielog/theme/app_theme.dart';
 import 'package:movielog/widgets/stat_item.dart';
 

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import 'widgets/common_app_bar.dart';
-import 'widgets/movie_log_text_form_field.dart';
-import 'widgets/sign_up_button.dart';
-import 'widgets/terms_checkbox.dart';
+import '../widgets/common_app_bar.dart';
+import '../widgets/movie_log_text_form_field.dart';
+import '../widgets/sign_up_button.dart';
+import '../widgets/terms_checkbox.dart';
 
 /// 2주차 회원가입 화면.
 ///

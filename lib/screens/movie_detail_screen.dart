@@ -1,30 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
-import 'data/mock_movies.dart';
-import 'models/movie.dart';
-import 'theme/app_colors.dart';
-import 'theme/app_text_styles.dart';
-import 'widgets/common_app_bar.dart';
-import 'widgets/movie_average_rating.dart';
-import 'widgets/rating_dialog.dart';
+import '../data/models/create_rating_request.dart';
+import '../data/models/tmdb_movie_dto.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_text_styles.dart';
+import '../view_models/movie_detail_view_model.dart';
+import '../widgets/common_app_bar.dart';
+import '../widgets/movie_average_rating.dart';
+import '../widgets/rating_dialog.dart';
+import '../widgets/tmdb_movie_card.dart';
+import '../widgets/tmdb_poster_image.dart';
 
-/// 3주차 영화 상세 화면.
+/// 5주차 영화 상세 화면.
 ///
-/// Extra로 Movie 객체를 받지 않고 Path Parameter의 ID로 Mock Data를 다시 찾는다.
-/// 그래야 URL로 바로 들어오거나 앱을 다시 켰을 때도 같은 화면을 그릴 수 있다.
+/// 홈·목록에서 넘겨받은 TMDB DTO를 그리고, URL로 바로 들어오면
+/// [MovieDetailViewModel]이 `movieId`로 TMDB 상세 API를 호출한다.
+/// 평점 Dialog에는 목록 index가 아니라 `TmdbMovieDto.id`를 넘긴다.
 class MovieDetailScreen extends StatefulWidget {
-  const MovieDetailScreen({super.key, required this.movieId});
-
-  /// `/movies/:movieId`에서 읽은 값. 숫자가 아니면 Router가 null을 넘긴다.
-  final int? movieId;
+  const MovieDetailScreen({super.key});
 
   @override
   State<MovieDetailScreen> createState() => _MovieDetailScreenState();
 }
 
 class _MovieDetailScreenState extends State<MovieDetailScreen> {
-  // 즐겨찾기와 내 평점은 8주차에 API로 연결한다. 지금은 화면 안 상태로만 다룬다.
+  // 즐겨찾기와 내 평점은 이후 주차에 MovieLog API로 연결한다. 지금은 화면 안 상태로만 다룬다.
   bool _isFavorite = false;
   double? _myRating;
 
@@ -37,54 +39,88 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
     }
   }
 
-  void _toggleFavorite() {
-    setState(() {
-      _isFavorite = !_isFavorite;
-    });
-
+  void _showSnackBar(String text) {
     ScaffoldMessenger.of(context)
       // 연타했을 때 이전 안내가 쌓이지 않도록 먼저 지운다.
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text(_isFavorite ? '즐겨찾기에 추가했습니다.' : '즐겨찾기에서 삭제했습니다.'),
+          content: Text(text),
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 2),
         ),
       );
   }
 
-  Future<void> _openRatingDialog() async {
-    // Dialog 안에서 Navigator.pop(context, rating)으로 넘긴 값이 여기로 돌아온다.
-    final rating = await showDialog<double>(
+  void _toggleFavorite() {
+    setState(() {
+      _isFavorite = !_isFavorite;
+    });
+    _showSnackBar(_isFavorite ? '즐겨찾기에 추가했습니다.' : '즐겨찾기에서 삭제했습니다.');
+  }
+
+  Future<void> _openRatingDialog(TmdbMovieDto movie) async {
+    // Dialog에 TMDB id를 넘기고, 확인을 누르면 평점 요청 Body가 그대로 돌아온다.
+    final request = await showDialog<CreateRatingRequest>(
       context: context,
-      builder: (dialogContext) => RatingDialog(initialRating: _myRating ?? 0),
+      builder: (dialogContext) =>
+          RatingDialog(movieId: movie.id, initialRating: _myRating ?? 0),
     );
 
-    if (rating == null || !mounted) return;
+    if (request == null || !mounted) return;
+
+    // 실제 저장 API는 이후 주차에 연결한다. 지금은 보낼 Body가 맞는지 로그로 확인한다.
+    debugPrint('[평점 요청 준비] ${request.toJson()}');
 
     setState(() {
-      _myRating = rating;
+      _myRating = request.score;
     });
-
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text('${rating.toStringAsFixed(1)}점을 남겼습니다.'),
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 2),
-        ),
-      );
+    _showSnackBar('${request.score.toStringAsFixed(1)}점을 남겼습니다.');
   }
 
   @override
   Widget build(BuildContext context) {
-    final movie = findMovieById(widget.movieId);
+    final viewModel = context.watch<MovieDetailViewModel>();
 
-    if (movie == null) {
-      return _MovieNotFound(onBack: _goBack);
+    switch (viewModel.status) {
+      case MovieDetailLoadStatus.idle:
+      case MovieDetailLoadStatus.loading:
+        return _DetailScaffold(
+          onBack: _goBack,
+          body: const Center(child: CircularProgressIndicator()),
+        );
+      case MovieDetailLoadStatus.notFound:
+        return _DetailScaffold(
+          onBack: _goBack,
+          body: const Center(
+            child: Text('영화를 찾을 수 없어요', style: AppTextStyles.bodyMedium),
+          ),
+        );
+      case MovieDetailLoadStatus.error:
+        return _DetailScaffold(
+          onBack: _goBack,
+          body: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  viewModel.message ?? '영화 정보를 불러오지 못했어요.',
+                  style: AppTextStyles.bodyMedium,
+                ),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: () => context.read<MovieDetailViewModel>().load(),
+                  child: const Text('다시 시도'),
+                ),
+              ],
+            ),
+          ),
+        );
+      case MovieDetailLoadStatus.success:
+        break;
     }
+
+    final movie = viewModel.movie!;
 
     return Scaffold(
       appBar: CommonAppBar(
@@ -114,15 +150,11 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
             const SizedBox(height: 16),
             const Text('줄거리', style: AppTextStyles.titleMedium),
             const SizedBox(height: 8),
-            Text(
-              '${movie.year}년 개봉한 ${movie.genre} 영화 「${movie.title}」의 줄거리입니다. '
-              '실제 줄거리와 상세 정보는 8주차에 서버 API와 연결하면 이 자리에 표시됩니다.',
-              style: AppTextStyles.bodyMedium,
-            ),
+            _Overview(overview: movie.overview),
             const SizedBox(height: 24),
             _MyRatingSection(
               myRating: _myRating,
-              onRatePressed: _openRatingDialog,
+              onRatePressed: () => _openRatingDialog(movie),
             ),
           ],
         ),
@@ -131,11 +163,48 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
   }
 }
 
-/// 포스터, 제목, 장르·연도, 평균 평점.
+/// 로딩·오류·없음 화면이 같은 AppBar를 쓰도록 묶었다.
+class _DetailScaffold extends StatelessWidget {
+  const _DetailScaffold({required this.onBack, required this.body});
+
+  final VoidCallback onBack;
+  final Widget body;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: CommonAppBar(title: '영화 상세', onBack: onBack),
+      body: body,
+    );
+  }
+}
+
+/// 줄거리. 번역된 줄거리가 없으면(빈 문자열) 안내 문구를 가운데에 보여 준다.
+class _Overview extends StatelessWidget {
+  const _Overview({required this.overview});
+
+  final String overview;
+
+  @override
+  Widget build(BuildContext context) {
+    if (overview.trim().isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: Text(
+          '줄거리 정보가 없어요.',
+          textAlign: TextAlign.center,
+          style: AppTextStyles.bodySmall,
+        ),
+      );
+    }
+    return Text(overview, style: AppTextStyles.bodyMedium);
+  }
+}
+
 class _MovieDetailHeader extends StatelessWidget {
   const _MovieDetailHeader({required this.movie});
 
-  final Movie movie;
+  final TmdbMovieDto movie;
 
   @override
   Widget build(BuildContext context) {
@@ -148,7 +217,7 @@ class _MovieDetailHeader extends StatelessWidget {
               aspectRatio: 2 / 3,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: Image.asset(movie.posterAsset, fit: BoxFit.cover),
+                child: TmdbPosterImage(posterPath: movie.posterPath),
               ),
             ),
           ),
@@ -160,10 +229,18 @@ class _MovieDetailHeader extends StatelessWidget {
           style: AppTextStyles.titleLarge,
         ),
         const SizedBox(height: 4),
-        Text('${movie.genre} · ${movie.year}', style: AppTextStyles.bodySmall),
+        if (releaseYearOf(movie) case final year?)
+          Text('$year년 개봉', style: AppTextStyles.bodySmall),
         const SizedBox(height: 12),
-        // 워크북 요구사항: 평균 평점을 RatingBarIndicator로 읽기 전용 표시(별빛 아래 우리 = 4.5)
-        MovieAverageRating(rating: movie.rating),
+        // TMDB 평점은 10점 만점이라 별 5개에 맞춰 반으로 나눠 표시한다. 평가가 없으면 0이 온다.
+        MovieAverageRating(
+          rating: movie.voteAverage > 0 ? movie.voteAverage / 2 : null,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'TMDB 평점 ${movie.voteAverage.toStringAsFixed(1)} / 10 · movieId ${movie.id}',
+          style: AppTextStyles.bodySmall,
+        ),
       ],
     );
   }
@@ -210,23 +287,6 @@ class _MyRatingSection extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-/// 잘못된 ID로 들어왔을 때 보여 주는 화면.
-class _MovieNotFound extends StatelessWidget {
-  const _MovieNotFound({required this.onBack});
-
-  final VoidCallback onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: CommonAppBar(title: '영화 상세', onBack: onBack),
-      body: const Center(
-        child: Text('영화를 찾을 수 없어요', style: AppTextStyles.bodyMedium),
-      ),
     );
   }
 }

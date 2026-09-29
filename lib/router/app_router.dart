@@ -1,12 +1,20 @@
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
-import '../home_screen.dart';
-import '../main_screen.dart';
-import '../movie_detail_screen.dart';
-import '../movie_list_screen.dart';
-import '../my_page_screen.dart';
-import '../sign_up_screen.dart';
-import '../start_screen.dart';
+import '../data/models/tmdb_movie_dto.dart';
+import '../data/services/tmdb_movie_service.dart';
+
+import '../screens/home_screen.dart';
+import '../screens/main_screen.dart';
+import '../screens/movie_detail_screen.dart';
+import '../screens/movie_list_screen.dart';
+import '../screens/my_page_screen.dart';
+import '../screens/sign_up_screen.dart';
+import '../screens/start_screen.dart';
+import '../view_models/movie_detail_view_model.dart';
+import '../view_models/movie_home_view_model.dart';
+import '../view_models/movie_list_view_model.dart';
 
 /// 앱의 모든 Route를 한곳에서 관리하는 클래스.
 ///
@@ -17,11 +25,15 @@ import '../start_screen.dart';
 /// /register              회원가입
 /// ┌ ShellRoute (MainScreen + NavigationBar)
 /// │  /home               홈
-/// │  /movies?genre=..    영화 목록 (Query Parameter로 장르 필터)
+/// │  /movies             영화 목록 (장르 선택은 ViewModel이 관리)
 /// │  /my                 마이페이지
 /// └
-/// /movies/:movieId       영화 상세 (Path Parameter, Shell 밖이라 NavigationBar 없음)
+/// /movies/:movieId       영화 상세 (TMDB id, Shell 밖이라 NavigationBar 없음)
 /// ```
+///
+/// 화면별 ViewModel은 각 Route 안에서 [ChangeNotifierProvider]로 만든다.
+/// 화면이 사라지면 ViewModel도 함께 dispose된다.
+/// `create`는 Route가 처음 만들어질 때 한 번만 실행되므로 build마다 요청이 반복되지 않는다.
 class AppRouter {
   // private 생성자: 외부에서 AppRouter()로 객체를 만들지 못하게 막는다.
   AppRouter._();
@@ -48,15 +60,25 @@ class AppRouter {
         routes: [
           GoRoute(
             path: '/home',
-            builder: (context, state) => const HomeScreen(),
+            builder: (context, state) =>
+                ChangeNotifierProvider<MovieHomeViewModel>(
+                  // ..(캐스케이드): 만든 ViewModel에 바로 loadPopular()를 호출하고
+                  // 반환값이 아니라 ViewModel 자신을 create 결과로 넘긴다.
+                  create: (context) =>
+                      MovieHomeViewModel(context.read<TmdbMovieService>())
+                        ..loadPopular(),
+                  child: const HomeScreen(),
+                ),
           ),
           GoRoute(
             path: '/movies',
-            builder: (context, state) => MovieListScreen(
-              selectedGenres: _genresFromQuery(
-                state.uri.queryParameters['genre'],
-              ),
-            ),
+            builder: (context, state) =>
+                ChangeNotifierProvider<MovieListViewModel>(
+                  create: (context) =>
+                      MovieListViewModel(context.read<TmdbMovieService>())
+                        ..loadInitial(),
+                  child: const MovieListScreen(),
+                ),
           ),
           GoRoute(
             path: '/my',
@@ -67,10 +89,25 @@ class AppRouter {
       // 상세는 Shell 바깥에 두어 전체 화면으로 열리고, push로 왔으니 pop으로 돌아간다.
       GoRoute(
         path: '/movies/:movieId',
-        builder: (context, state) => MovieDetailScreen(
+        builder: (context, state) {
           // ':movieId' 이름과 pathParameters의 Key가 같아야 한다. 숫자가 아니면 null.
-          movieId: int.tryParse(state.pathParameters['movieId'] ?? ''),
-        ),
+          final movieId = int.tryParse(state.pathParameters['movieId'] ?? '');
+
+          return ChangeNotifierProvider<MovieDetailViewModel>(
+            // 같은 Route에서 id만 바뀌면(/movies/1 → /movies/2) Element가 재사용되어
+            // create가 다시 불리지 않는다. id를 Key로 주어 새 ViewModel을 만들게 한다.
+            key: ValueKey(movieId),
+            create: (context) => MovieDetailViewModel(
+              context.read<TmdbMovieService>(),
+              movieId: movieId,
+              // 목록·홈에서 push할 때 넘긴 DTO. URL로 바로 들어오면 null이다.
+              initialMovie: state.extra is TmdbMovieDto
+                  ? state.extra as TmdbMovieDto
+                  : null,
+            )..load(),
+            child: const MovieDetailScreen(),
+          );
+        },
       ),
     ],
   );
@@ -80,11 +117,5 @@ class AppRouter {
     if (path.startsWith('/movies')) return 1;
     if (path.startsWith('/my')) return 2;
     return 0;
-  }
-
-  /// `genre=드라마,SF` 형태의 Query 값을 장르 집합으로 바꾼다. 없으면 빈 집합(전체).
-  static Set<String> _genresFromQuery(String? raw) {
-    if (raw == null || raw.isEmpty) return const {};
-    return raw.split(',').where((genre) => genre.isNotEmpty).toSet();
   }
 }
