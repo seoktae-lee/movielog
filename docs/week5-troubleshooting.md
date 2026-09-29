@@ -92,3 +92,17 @@ ViewModel 상태: 요청마다 _requestVersion 증가
       ② 요청 중(isBusy)에는 Chip·필터 버튼을 비활성화하고, ViewModel에서도 selectGenres를 무시한다. (Required 7)
 재검증: Unit 테스트 "늦게 도착한 이전 요청의 응답은 버린다", "요청 중에는 장르를 바꿀 수 없다" 통과
 ```
+
+## 6. 액션을 골랐는데 카드 아래에 "SF", "모험"이 보임
+
+```
+상황과 재현 순서: 실제 TMDB로 목록 진입 → 액션 Chip 선택
+호출 API: Discover
+Query parameter(Token 제외): {language: ko-KR, page: 1, sort_by: popularity.desc, include_adult: false, include_video: false, with_genres: 28}
+기대한 상태와 결과 개수: 액션 영화 30편, 카드에 "액션 · 연도"
+실제 status / 응답 모양: 200, 30편은 맞게 왔지만 스파이더맨 카드에 "SF · 2026" (genre_ids: [878, 28, ...])
+ViewModel 상태: status = success, selectedGenreIds = [28]
+원인: 카드 아래 장르를 "영화의 첫 번째 genre_id"로만 골랐다. 요청은 맞았는데 화면이 필터가 안 된 것처럼 보였다.
+수정: 선택한 장르를 가진 영화는 그 장르 이름을 먼저 쓰도록 movieSubtitle(preferredGenreIds:)를 추가했다.
+재검증: 시뮬레이터에서 "액션 · 2026" 확인 (week5-03-genre-action.png), Unit·Widget 테스트 추가
+```

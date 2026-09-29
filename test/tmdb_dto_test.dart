@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:movielog/data/models/tmdb_genre_dto.dart';
 import 'package:movielog/data/models/tmdb_movie_dto.dart';
 import 'package:movielog/data/models/tmdb_movie_page.dart';
+import 'package:movielog/widgets/tmdb_movie_card.dart';
 
 void main() {
   test('snake_case Key를 lowerCamelCase 필드로 연결하고 num을 double로 바꾼다', () {
@@ -80,5 +81,25 @@ void main() {
 
     expect(genre.id, 28);
     expect(genre.name, '액션');
+  });
+
+  test('카드 아래 한 줄은 선택한 장르를 먼저, 없는 값은 빼고 만든다', () {
+    const names = {878: 'SF', 28: '액션'};
+    final movie = TmdbMovieDto.fromJson({
+      'id': 1,
+      'title': '스파이더맨',
+      'genre_ids': [878, 28],
+      'release_date': '2026-07-29',
+    });
+    final noDate = TmdbMovieDto.fromJson({
+      'id': 2,
+      'title': '미정',
+      'genre_ids': <int>[],
+      'release_date': '',
+    });
+
+    expect(movieSubtitle(movie, names), 'SF · 2026');
+    expect(movieSubtitle(movie, names, preferredGenreIds: [28]), '액션 · 2026');
+    expect(movieSubtitle(noDate, names), '');
   });
 }

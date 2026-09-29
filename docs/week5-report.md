@@ -8,9 +8,10 @@
 | Pull Request | (PR 생성 후 기입) |
 | 추가한 Package | `dio 5.11.1`, `provider 6.1.5+1`, `flutter_dotenv 6.0.1` (제거: `shared_preferences`) |
 | `flutter analyze` | `No issues found!` |
-| `flutter test` | 49개 통과 |
-| 트러블슈팅 | `docs/week5-troubleshooting.md` (5건) |
+| `flutter test` | 50개 통과 |
+| 트러블슈팅 | `docs/week5-troubleshooting.md` (6건) |
 | 환경 | Flutter 3.47.3 / Dart 3.13.3, iPhone 17 시뮬레이터 |
+| 캡처 | `week5-01-home-popular` · `02-movies-30` · `03-genre-action` · `04-loading` · `05-empty` · `06-error-401` · `07-placeholder` |
 
 ## 구조 — UI Layer와 Data Layer
 
@@ -79,7 +80,7 @@ lib/
 - `SharedPreferences` 장르·정렬 저장은 TMDB 정렬(`popularity.desc` 고정)·장르 id 체계와 맞지 않아 이번 주에 제거했다.
 - 마이페이지 즐겨찾기는 아직 Mock이라 상세로 이동하지 않는다(상세는 TMDB id 기준).
 
-## 테스트 (49개)
+## 테스트 (50개)
 
 | 파일 | 내용 |
 | --- | --- |
@@ -88,3 +89,27 @@ lib/
 | `movie_home_view_model_test.dart` | take(5), 5개 미만, Empty/Error, Loading → Success 순서 |
 | `movie_list_view_model_test.dart` | 30개·중복 제거·마지막 페이지·빈 페이지, 장르 재조회, 요청 중 잠금, 늦은 응답, 재시도, 새로고침 |
 | `navigation_test.dart` | 화면 흐름 전체 (FakeTmdbMovieService를 `MovieLogApp(movieService:)`로 주입) |
+
+## 실제 TMDB 로그 (Token 제외)
+
+```
+[TMDB 요청] GET https://api.themoviedb.org/3/movie/popular?language=ko-KR&page=1
+[TMDB 응답] 200 https://api.themoviedb.org/3/movie/popular?language=ko-KR&page=1
+
+# 목록 진입: Genre + Discover page 1, 2 (20개씩이라 2페이지에서 30개가 찬다)
+[TMDB 요청 Query] {language: ko}
+[TMDB 요청 Query] {language: ko-KR, page: 1, sort_by: popularity.desc, include_adult: false, include_video: false}
+[TMDB 요청 Query] {language: ko-KR, page: 2, sort_by: popularity.desc, include_adult: false, include_video: false}
+
+# 액션 선택: with_genres=28로 page 1부터 다시
+[TMDB 요청 Query] {language: ko-KR, page: 1, sort_by: popularity.desc, include_adult: false, include_video: false, with_genres: 28}
+[TMDB 요청 Query] {language: ko-KR, page: 2, sort_by: popularity.desc, include_adult: false, include_video: false, with_genres: 28}
+
+# Empty 재현: 존재하지 않는 장르 → total_results 0
+[TMDB 응답] 200 .../discover/movie?...&with_genres=999999
+
+# placeholder 재현: 포스터·줄거리가 없는 실제 영화 (Monster, 2027 개봉 예정)
+[TMDB 응답] 200 https://api.themoviedb.org/3/movie/1569292?language=ko-KR
+```
+
+캡처용으로 `initialLocation`·초기 장르를 잠시 바꿨다가 되돌렸다(커밋에는 없음).

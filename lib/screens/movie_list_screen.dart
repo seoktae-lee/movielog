@@ -165,6 +165,7 @@ class _MovieListScreenState extends State<MovieListScreen> {
                         child: MovieGrid(
                           movies: viewModel.movies,
                           genreNames: viewModel.genreNames,
+                          preferredGenreIds: viewModel.selectedGenreIds,
                           refreshIndicatorKey: _refreshIndicatorKey,
                           onRefresh: _onRefresh,
                           onMovieTap: _openDetail,

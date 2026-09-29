@@ -12,14 +12,14 @@
 | GitHub 저장소 | https://github.com/seoktae-lee/movielog |
 | Pull Request | (PR 링크) |
 | 추가 Package | `dio 5.11.1` / `provider 6.1.5+1` / `flutter_dotenv 6.0.1` |
-| 검증 | `flutter analyze` 0건 / `flutter test` 49개 통과 |
+| 검증 | `flutter analyze` 0건 / `flutter test` 50개 통과 |
 
 ## 📸 스터디 인증
 
 - [ ] TMDB Token 비노출 확인 — `.env`는 `.gitignore`에 등록, `git log --all -- .env` 결과 없음, 로그는 `Bearer ***`
 - [ ] 인기 영화 5개 홈 화면 🖼️ `week5-01-home-popular.png`
 - [ ] Discover 최대 30개 목록 화면 🖼️ `week5-02-movies-30.png` ("인기순 30편")
-- [ ] 장르 선택 전/후 Network 요청과 목록 변화 영상 🖼️ `5주차영상1.mp4`
+- [ ] 장르 선택 전/후 Network 요청과 목록 변화 영상 🖼️ `5주차영상1.mp4` + 선택 후 캡처 `week5-03-genre-action.png`
 - [ ] Loading / Empty / Error / Success 🖼️ `week5-04-loading.png` · `week5-05-empty.png` · `week5-06-error-401.png` · `week5-02-movies-30.png`
 - [ ] 포스터 없는 영화의 placeholder 🖼️ `week5-07-placeholder.png`
 - [ ] `flutter analyze` 결과와 수동 검증 결과
@@ -29,7 +29,7 @@ $ flutter analyze
 No issues found!
 
 $ flutter test
-+49: All tests passed!
++50: All tests passed!
 ```
 
 - [ ] Pull Request와 트러블슈팅 기록 (아래)
@@ -98,7 +98,7 @@ Future<List<TmdbMovieDto>> fetchUpToThirtyMovies({List<int>? genreIds}) async {
 
 ## 🛠 트러블슈팅
 
-(`docs/week5-troubleshooting.md` 5건을 그대로 붙여넣는다 — 템플릿 형식 유지)
+(`docs/week5-troubleshooting.md` 6건을 그대로 붙여넣는다 — 템플릿 형식 유지)
 
 ## ✅ 최종 체크리스트
 
@@ -125,7 +125,7 @@ Genre API 및 with_genres 요청 증거: 5주차영상1.mp4 + 로그 [TMDB 요�
 Loading / Empty / Error / Success: week5-04 / 05 / 06 / 02
 포스터 null·실패 처리: TmdbPosterImage (null·빈 문자열·errorBuilder → placeholder), week5-07-placeholder.png
 movie.id 전달 위치: context.push('/movies/${movie.id}', extra: movie) → RatingDialog(movieId: movie.id) → CreateRatingRequest
-트러블슈팅: 5건
+트러블슈팅: 6건
 미검증 항목: (있으면 적기)
 ```
 

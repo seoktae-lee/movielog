@@ -189,6 +189,7 @@ void main() {
     gate.complete();
     await tester.pumpAndSettle();
     expect(find.text('인기순 3편'), findsOneWidget);
+    expect(find.text('액션 · 2025'), findsWidgets);
     expect(
       tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, '액션')).selected,
       isTrue,

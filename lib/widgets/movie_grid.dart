@@ -24,6 +24,7 @@ class MovieGrid extends StatelessWidget {
     required this.movies,
     required this.onMovieTap,
     this.genreNames = const {},
+    this.preferredGenreIds = const [],
     this.onRefresh,
     this.refreshIndicatorKey,
   });
@@ -31,6 +32,9 @@ class MovieGrid extends StatelessWidget {
   final List<TmdbMovieDto> movies;
   final ValueChanged<TmdbMovieDto> onMovieTap;
   final Map<int, String> genreNames;
+
+  /// 선택된 장르. 카드 아래 장르 이름을 고를 때 먼저 쓴다.
+  final List<int> preferredGenreIds;
 
   /// 당겨서 새로고침. (Challenge) null이면 RefreshIndicator를 달지 않는다.
   final Future<void> Function()? onRefresh;
@@ -53,6 +57,7 @@ class MovieGrid extends StatelessWidget {
           key: ValueKey(movie.id),
           movie: movie,
           genreNames: genreNames,
+          preferredGenreIds: preferredGenreIds,
           onTap: () => onMovieTap(movie),
         );
       },

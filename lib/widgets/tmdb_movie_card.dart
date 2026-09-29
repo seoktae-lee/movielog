@@ -13,6 +13,7 @@ class TmdbMovieCard extends StatelessWidget {
     required this.movie,
     required this.onTap,
     this.genreNames = const {},
+    this.preferredGenreIds = const [],
     this.width,
   });
 
@@ -21,6 +22,9 @@ class TmdbMovieCard extends StatelessWidget {
 
   /// 장르 ID → 이름. 모르면 장르를 빼고 연도만 표시한다.
   final Map<int, String> genreNames;
+
+  /// 지금 선택된 장르. 영화가 이 장르를 가지고 있으면 그 이름을 먼저 보여 준다.
+  final List<int> preferredGenreIds;
   final double? width;
 
   @override
@@ -28,7 +32,11 @@ class TmdbMovieCard extends StatelessWidget {
     return MovieCard(
       poster: TmdbPosterImage(posterPath: movie.posterPath),
       title: movie.title,
-      subtitle: movieSubtitle(movie, genreNames),
+      subtitle: movieSubtitle(
+        movie,
+        genreNames,
+        preferredGenreIds: preferredGenreIds,
+      ),
       // 평가가 한 건도 없으면 0.0이 온다. 0.0을 평점처럼 보이지 않게 배지를 숨긴다.
       rating: movie.voteAverage > 0 ? movie.voteAverage : null,
       onTap: onTap,
@@ -45,8 +53,19 @@ int? releaseYearOf(TmdbMovieDto movie) {
 }
 
 /// "액션 · 2025". 장르·연도 중 없는 값은 빼고 잇는다.
-String movieSubtitle(TmdbMovieDto movie, Map<int, String> genreNames) {
-  final genre = movie.genreIds
+///
+/// 액션을 골랐는데 카드에 영화의 첫 장르(예: SF)가 보이면 필터가 안 된 것처럼 보이므로,
+/// 선택한 장르를 가진 영화는 그 장르 이름을 먼저 쓴다.
+String movieSubtitle(
+  TmdbMovieDto movie,
+  Map<int, String> genreNames, {
+  List<int> preferredGenreIds = const [],
+}) {
+  final ordered = [
+    ...preferredGenreIds.where(movie.genreIds.contains),
+    ...movie.genreIds,
+  ];
+  final genre = ordered
       .map((id) => genreNames[id])
       .whereType<String>()
       .firstOrNull;
