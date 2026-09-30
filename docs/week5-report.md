@@ -9,7 +9,7 @@
 | 추가한 Package | `dio 5.11.1`, `provider 6.1.5+1`, `flutter_dotenv 6.0.1` (제거: `shared_preferences`) |
 | `flutter analyze` | `No issues found!` |
 | `flutter test` | 50개 통과 |
-| 트러블슈팅 | `docs/week5-troubleshooting.md` (7건) |
+| 트러블슈팅 | `docs/week5-troubleshooting.md` (8건) |
 | 환경 | Flutter 3.47.3 / Dart 3.13.3, iPhone 17 시뮬레이터 |
 | 캡처 | `week5-01-home-popular` · `02-movies-30` · `03-genre-action` · `04-loading` · `05-empty` · `06-error-401` · `07-placeholder` · `08-retry-dialog` |
 

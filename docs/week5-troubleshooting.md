@@ -132,3 +132,38 @@ ViewModel 상태: status = success 유지, isRefreshing true → false, refresh(
 ```
 
 같은 상태에서 홈 탭으로 가면 홈은 "네트워크에 연결할 수 없어요." Error 화면이 되고, Wi-Fi를 켠 뒤 `다시 시도`를 누르면 인기 영화가 다시 뜬다 (5주차_영상3).
+
+## 8. release 모드에서는 로그가 나오지 않는지 확인 (Challenge)
+
+```
+상황과 재현 순서: iOS 시뮬레이터는 release 모드를 지원하지 않아 웹으로 확인
+                  flutter build web --release → build/web을 로컬 서버로 띄우고 Chrome으로 http://localhost:8765/#/home 접속
+호출 API: Popular
+Query parameter(Token 제외): {language: ko-KR, page: 1}
+기대한 상태와 결과 개수: 인기 영화 5개는 뜨고, 콘솔에는 [TMDB …] 로그가 한 줄도 없음
+실제 status / 응답 모양: 화면에 스파이더맨·레지던트 이블·오디세이 등 표시 (요청 정상)
+ViewModel 상태: MovieHomeViewModel.status = success
+원인: (확인 항목) release에서는 kDebugMode가 컴파일 시점 상수 false라 if (kDebugMode) 블록이 코드에서 통째로 제거된다.
+수정: 없음 (createTmdbClient의 if (kDebugMode) { dio.interceptors.add(...) } 그대로)
+재검증: 아래 두 가지
+```
+
+1. 빌드 결과물에 로그 문구가 아예 없다.
+
+```
+$ grep -c "TMDB 요청" build/web/main.dart.js
+0
+$ grep -c "TMDB 설정" build/web/main.dart.js
+0
+$ grep -c "api.themoviedb.org" build/web/main.dart.js     # 요청 코드는 있다
+1
+```
+
+2. Chrome 콘솔에 찍힌 것은 Flutter 부트스트랩 메시지 두 줄뿐이다. (`[TMDB` 0줄)
+
+```
+"Injecting <script> tag. Using callback.", source: flutter_bootstrap.js
+"WARNING: Falling back to CPU-only rendering. Reason: webGLVersion is -1", source: main.dart.js
+```
+
+debug 모드(시뮬레이터)에서는 같은 동작에 `[TMDB 요청]`·`[TMDB 응답]` 로그가 찍힌다 (트러블슈팅 1·7, 5주차_영상1).
