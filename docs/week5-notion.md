@@ -10,7 +10,7 @@
 | --- | --- |
 | 이름 / 닉네임 | 이석태 / 태이 |
 | GitHub 저장소 | https://github.com/seoktae-lee/movielog |
-| Pull Request | (PR 링크) |
+| Pull Request | https://github.com/seoktae-lee/movielog/pull/7 |
 | 추가 Package | `dio 5.11.1` / `provider 6.1.5+1` / `flutter_dotenv 6.0.1` |
 | 검증 | `flutter analyze` 0건 / `flutter test` 50개 통과 |
 
@@ -117,7 +117,7 @@ Future<List<TmdbMovieDto>> fetchUpToThirtyMovies({List<int>? genreIds}) async {
 ## 📮 제출 양식
 
 ```
-PR 링크: (PR 링크)
+PR 링크: https://github.com/seoktae-lee/movielog/pull/7
 TMDB Token 비노출 확인: .env는 .gitignore 등록·커밋 이력 없음, 로그는 Bearer ***, 캡처·영상에 Token 없음
 Popular 5개 화면: week5-01-home-popular.png
 Discover 최대 30개 화면과 실제 개수: week5-02-movies-30.png / 30편

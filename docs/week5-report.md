@@ -5,7 +5,7 @@
 | 이름 / 닉네임 | 이석태 / 태이 |
 | GitHub 저장소 | https://github.com/seoktae-lee/movielog |
 | 브랜치 | `feature/week-5` (PR #6 `feature/week-4`에서 분기) |
-| Pull Request | (PR 생성 후 기입) |
+| Pull Request | https://github.com/seoktae-lee/movielog/pull/7 |
 | 추가한 Package | `dio 5.11.1`, `provider 6.1.5+1`, `flutter_dotenv 6.0.1` (제거: `shared_preferences`) |
 | `flutter analyze` | `No issues found!` |
 | `flutter test` | 50개 통과 |
