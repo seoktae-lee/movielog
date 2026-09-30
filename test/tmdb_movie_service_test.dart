@@ -123,7 +123,7 @@ void main() {
   test('마스킹은 복사본에만 적용되고 실제 요청 Header는 바꾸지 않는다', () {
     final headers = <String, dynamic>{'Authorization': 'Bearer $fakeToken'};
 
-    final masked = TmdbLoggingInterceptor.maskHeaders(headers);
+    final masked = ApiLoggingInterceptor.maskHeaders(headers);
 
     expect(masked['Authorization'], 'Bearer ***');
     expect(headers['Authorization'], 'Bearer $fakeToken');

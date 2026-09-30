@@ -19,6 +19,10 @@ class MovieLogTextFormField extends StatelessWidget {
     this.textInputAction = TextInputAction.next,
     this.obscureText = false,
     this.suffixIcon,
+    this.fieldKey,
+    this.helperText,
+    this.helperColor,
+    this.errorText,
   });
 
   final TextEditingController controller;
@@ -36,9 +40,20 @@ class MovieLogTextFormField extends StatelessWidget {
   /// 비밀번호 표시·숨김 버튼처럼 입력창 오른쪽에 놓을 Widget.
   final Widget? suffixIcon;
 
+  /// 이 칸만 따로 validate()할 때 쓰는 Key. (중복 확인 전 형식 검사)
+  final GlobalKey<FormFieldState<String>>? fieldKey;
+
+  /// 입력창 아래 안내 문구. (예: 사용할 수 있는 닉네임이에요.)
+  final String? helperText;
+  final Color? helperColor;
+
+  /// 서버가 알려 준 오류처럼 validator 밖에서 정해진 오류 문구.
+  final String? errorText;
+
   @override
   Widget build(BuildContext context) {
     return TextFormField(
+      key: fieldKey,
       controller: controller,
       focusNode: focusNode,
       decoration: InputDecoration(
@@ -46,6 +61,9 @@ class MovieLogTextFormField extends StatelessWidget {
         hintText: hintText,
         prefixIcon: Icon(prefixIcon),
         suffixIcon: suffixIcon,
+        helperText: helperText,
+        helperStyle: helperColor == null ? null : TextStyle(color: helperColor),
+        errorText: errorText,
         border: const OutlineInputBorder(),
       ),
       keyboardType: keyboardType,

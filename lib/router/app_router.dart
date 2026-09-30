@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../data/models/tmdb_movie_dto.dart';
+import '../core/config/movielog_api_config.dart';
+import '../data/services/movielog_member_service.dart';
 import '../data/services/tmdb_movie_service.dart';
 
 import '../screens/home_screen.dart';
@@ -15,6 +17,8 @@ import '../screens/start_screen.dart';
 import '../view_models/movie_detail_view_model.dart';
 import '../view_models/movie_home_view_model.dart';
 import '../view_models/movie_list_view_model.dart';
+import '../view_models/my_ratings_view_model.dart';
+import '../view_models/sign_up_view_model.dart';
 
 /// 앱의 모든 Route를 한곳에서 관리하는 클래스.
 ///
@@ -46,7 +50,11 @@ class AppRouter {
       GoRoute(path: '/start', builder: (context, state) => const StartScreen()),
       GoRoute(
         path: '/register',
-        builder: (context, state) => const SignUpScreen(),
+        builder: (context, state) => ChangeNotifierProvider<SignUpViewModel>(
+          create: (context) =>
+              SignUpViewModel(context.read<MovieLogMemberService>()),
+          child: const SignUpScreen(),
+        ),
       ),
       // 탭 세 화면은 MainScreen이라는 껍데기(Shell) 안에서 body만 바꿔 끼운다.
       ShellRoute(
@@ -82,7 +90,16 @@ class AppRouter {
           ),
           GoRoute(
             path: '/my',
-            builder: (context, state) => const MyPageScreen(),
+            builder: (context, state) =>
+                ChangeNotifierProvider<MyRatingsViewModel>(
+                  create: (context) => MyRatingsViewModel(
+                    context.read<MovieLogMemberService>(),
+                    context.read<TmdbMovieService>(),
+                    // 로그인(7주차) 전까지는 시드 데이터의 1번 회원으로 고정한다.
+                    memberId: MovieLogApiConfig.currentMemberId,
+                  )..load(),
+                  child: const MyPageScreen(),
+                ),
           ),
         ],
       ),

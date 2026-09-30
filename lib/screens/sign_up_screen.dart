@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
+import '../theme/app_colors.dart';
+import '../view_models/sign_up_view_model.dart';
 import '../widgets/common_app_bar.dart';
 import '../widgets/movie_log_text_form_field.dart';
 import '../widgets/sign_up_button.dart';
 import '../widgets/terms_checkbox.dart';
 
-/// 2주차 회원가입 화면.
+/// 회원가입 화면.
 ///
-/// API 연결 없이 Form과 State만으로 입력·오류·완료 상태를 다룬다.
+/// 2주차: Form과 State로 입력·형식 오류·완료 상태를 다룬다.
+/// 5주차: 닉네임·이메일이 이미 쓰이고 있는지 MovieLog 서버에 묻는다. ([SignUpViewModel])
+/// 가입 요청 자체는 6주차에 서버와 연결한다.
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
 
@@ -19,6 +24,10 @@ class SignUpScreen extends StatefulWidget {
 class _SignUpScreenState extends State<SignUpScreen> {
   // build 안에서 만들면 리빌드마다 새 키가 생겨 validate()가 동작하지 않는다.
   final _formKey = GlobalKey<FormState>();
+
+  // 중복 확인 전에 그 칸만 형식 검사를 하기 위한 Key.
+  final _nicknameFieldKey = GlobalKey<FormFieldState<String>>();
+  final _emailFieldKey = GlobalKey<FormFieldState<String>>();
 
   // Controller와 FocusNode는 build 밖(State 필드)에서 한 번만 만든다.
   // build 안에서 만들면 리빌드마다 입력값과 Focus가 초기화된다.
@@ -54,6 +63,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (nickname.length < 2) {
       return '닉네임은 두 글자 이상 입력해주세요.';
     }
+    // 서버도 2~12자가 아니면 400으로 거절한다. 같은 규칙을 앞에서 먼저 막는다.
+    if (nickname.length > 12) {
+      return '닉네임은 12자 이하로 입력해주세요.';
+    }
     return null;
   }
 
@@ -81,8 +94,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return null;
   }
 
+  /// 닉네임 "중복 확인" 버튼. 형식이 맞을 때만 서버에 묻는다.
+  Future<void> _checkNickname() async {
+    if (!(_nicknameFieldKey.currentState?.validate() ?? false)) return;
+    await context.read<SignUpViewModel>().checkNickname(
+      _nicknameController.text,
+    );
+  }
+
+  Future<void> _checkEmail() async {
+    if (!(_emailFieldKey.currentState?.validate() ?? false)) return;
+    await context.read<SignUpViewModel>().checkEmail(_emailController.text);
+  }
+
   /// 가입 버튼을 눌렀을 때 실행된다.
-  void _submit() {
+  Future<void> _submit() async {
     // validate()는 모든 TextFormField의 validator를 실행하고,
     // 하나라도 문자열을 반환하면 false를 돌려주며 해당 필드에 오류 메시지를 표시한다.
     final isValid = _formKey.currentState?.validate() ?? false;
@@ -90,9 +116,29 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     FocusScope.of(context).unfocus();
 
+    // 중복 확인을 아직 안 했거나 그 뒤에 값을 바꿨다면 여기서 한 번 더 묻는다.
+    final viewModel = context.read<SignUpViewModel>();
+    final nickname = _nicknameController.text.trim();
+    final email = _emailController.text.trim();
+    final results = await Future.wait([
+      _isConfirmed(viewModel.nickname, nickname)
+          ? Future.value(viewModel.nickname)
+          : viewModel.checkNickname(nickname),
+      _isConfirmed(viewModel.email, email)
+          ? Future.value(viewModel.email)
+          : viewModel.checkEmail(email),
+    ]);
+
+    // await 뒤에는 화면이 사라졌을 수 있다.
+    if (!mounted) return;
+    final allAvailable = results.every(
+      (result) => result.status == DuplicateCheckStatus.available,
+    );
+    if (!allAvailable) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${_nicknameController.text.trim()}님, 가입을 환영합니다!'),
+        content: Text('$nickname님, 가입을 환영합니다!'),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -101,14 +147,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
     context.go('/home');
   }
 
+  bool _isConfirmed(DuplicateCheck check, String value) =>
+      check.status == DuplicateCheckStatus.available && check.value == value;
+
   @override
   Widget build(BuildContext context) {
+    final viewModel = context.watch<SignUpViewModel>();
+
     // 버튼을 켤지 정하는 느슨한 조건. 최종 검증은 _submit()의 validate()가 담당한다.
     final canSubmit =
         _nicknameController.text.trim().length >= 2 &&
         _emailController.text.contains('@') &&
         _passwordController.text.length >= 8 &&
-        _agreedToTerms;
+        _agreedToTerms &&
+        !viewModel.isChecking;
 
     // 시작 화면에서 go로 왔으므로 Stack에 이전 화면이 없지만,
     // Android 뒤로 가기로 앱이 닫히는 것까지 막기 위해 PopScope로 감싼다.
@@ -140,18 +192,30 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           MovieLogTextFormField(
+                            fieldKey: _nicknameFieldKey,
                             controller: _nicknameController,
                             labelText: '닉네임',
-                            hintText: '두 글자 이상 입력',
+                            hintText: '2~12자 입력',
                             prefixIcon: Icons.person_outline,
                             validator: _validateNickname,
+                            suffixIcon: _DuplicateCheckButton(
+                              check: viewModel.nickname,
+                              onPressed: _checkNickname,
+                            ),
+                            helperText: _helperText(viewModel.nickname),
+                            helperColor: AppColors.violet,
+                            errorText: _errorText(viewModel.nickname),
                             // 버튼 활성화 조건이 최신 입력값을 읽도록 화면을 다시 그린다.
-                            onChanged: (_) => setState(() {}),
+                            onChanged: (value) {
+                              viewModel.nicknameChanged(value);
+                              setState(() {});
+                            },
                             onFieldSubmitted: (_) =>
                                 _emailFocusNode.requestFocus(),
                           ),
                           const SizedBox(height: 16),
                           MovieLogTextFormField(
+                            fieldKey: _emailFieldKey,
                             controller: _emailController,
                             focusNode: _emailFocusNode,
                             labelText: '이메일',
@@ -159,7 +223,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             prefixIcon: Icons.mail_outline,
                             keyboardType: TextInputType.emailAddress,
                             validator: _validateEmail,
-                            onChanged: (_) => setState(() {}),
+                            suffixIcon: _DuplicateCheckButton(
+                              check: viewModel.email,
+                              onPressed: _checkEmail,
+                            ),
+                            helperText: _helperText(viewModel.email),
+                            helperColor: AppColors.violet,
+                            errorText: _errorText(viewModel.email),
+                            onChanged: (value) {
+                              viewModel.emailChanged(value);
+                              setState(() {});
+                            },
                             onFieldSubmitted: (_) =>
                                 _passwordFocusNode.requestFocus(),
                           ),
@@ -215,5 +289,48 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ),
       ),
     );
+  }
+}
+
+/// 확인 결과가 "사용 가능"이거나 "확인 중"이면 입력창 아래 안내로 보여 준다.
+String? _helperText(DuplicateCheck check) => switch (check.status) {
+  DuplicateCheckStatus.checking => '확인 중이에요…',
+  DuplicateCheckStatus.available => check.message,
+  _ => null,
+};
+
+/// 이미 쓰는 값이거나 서버 오류면 빨간 오류로 보여 준다.
+String? _errorText(DuplicateCheck check) => switch (check.status) {
+  DuplicateCheckStatus.taken || DuplicateCheckStatus.error => check.message,
+  _ => null,
+};
+
+/// 입력창 오른쪽의 "중복 확인" 버튼. 확인이 끝나면 체크 아이콘으로 바뀐다.
+class _DuplicateCheckButton extends StatelessWidget {
+  const _DuplicateCheckButton({required this.check, required this.onPressed});
+
+  final DuplicateCheck check;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return switch (check.status) {
+      DuplicateCheckStatus.checking => const Padding(
+        padding: EdgeInsets.all(14),
+        child: SizedBox(
+          width: 18,
+          height: 18,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
+      DuplicateCheckStatus.available => const Icon(
+        Icons.check_circle,
+        color: AppColors.violet,
+      ),
+      _ => Padding(
+        padding: const EdgeInsets.only(right: 4),
+        child: TextButton(onPressed: onPressed, child: const Text('중복 확인')),
+      ),
+    };
   }
 }

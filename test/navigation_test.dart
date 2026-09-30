@@ -8,6 +8,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:movielog/app/movie_log_app.dart';
+import 'package:movielog/data/services/movielog_member_service.dart';
 import 'package:movielog/data/models/tmdb_movie_page.dart';
 import 'package:movielog/router/app_router.dart';
 import 'package:movielog/screens/home_screen.dart';
@@ -21,14 +22,17 @@ import 'package:movielog/widgets/movie_list_error.dart';
 import 'package:movielog/widgets/movie_list_loading.dart';
 import 'package:movielog/widgets/rating_dialog.dart';
 
+import 'support/fake_movielog_member_service.dart';
 import 'support/fake_tmdb_movie_service.dart';
 import 'support/tmdb_fixtures.dart';
 
 void main() {
   late FakeTmdbMovieService service;
+  late FakeMovieLogMemberService memberService;
 
   setUp(() {
     service = FakeTmdbMovieService();
+    memberService = FakeMovieLogMemberService();
   });
 
   // AppRouter.router는 앱 전체에 하나뿐(static)이라 테스트 사이에 위치가 남는다.
@@ -41,7 +45,9 @@ void main() {
 
     // 앱을 그리기 전에 위치를 옮겨야 이전 테스트의 화면이 잠깐이라도 만들어지지 않는다.
     AppRouter.router.go(location);
-    await tester.pumpWidget(MovieLogApp(movieService: service));
+    await tester.pumpWidget(
+      MovieLogApp(movieService: service, memberService: memberService),
+    );
     await tester.pumpAndSettle();
   }
 
@@ -329,5 +335,37 @@ void main() {
     await pumpAppAt(tester, '/movies/abc');
     expect(find.text('영화를 찾을 수 없어요'), findsOneWidget);
     expect(service.detailCalls, isEmpty);
+  });
+
+  testWidgets('마이페이지는 자체 API의 내 평점에 TMDB 제목을 붙여 보여 준다', (tester) async {
+    await pumpAppAt(tester, '/my');
+
+    // 로그인 전까지는 1번 회원으로 고정
+    expect(memberService.ratingCalls, [1]);
+    expect(find.text('내가 남긴 평점'), findsOneWidget);
+    expect(find.text('상세 155'), findsOneWidget);
+    expect(find.text('다시 봐도 명작'), findsOneWidget);
+    expect(find.textContaining('movieId 155'), findsOneWidget);
+
+    // 평점을 누르면 TMDB id로 상세에 가고, 이미 받은 영화 정보를 쓰므로 상세 API를 다시 부르지 않는다.
+    service.detailCalls.clear();
+    await tester.tap(find.text('상세 155'));
+    await tester.pumpAndSettle();
+    expect(currentLocation(), '/movies/155');
+    expect(service.detailCalls, isEmpty);
+  });
+
+  testWidgets('자체 서버가 꺼져 있으면 마이페이지 평점 영역에 안내와 다시 시도가 보인다', (tester) async {
+    memberService.error = const MovieLogApiException(
+      'MovieLog 서버에 연결할 수 없어요. 서버가 켜져 있는지 확인해 주세요.',
+    );
+    await pumpAppAt(tester, '/my');
+
+    expect(find.textContaining('서버에 연결할 수 없어요'), findsOneWidget);
+
+    memberService.error = null;
+    await tester.tap(find.widgetWithText(TextButton, '다시 시도'));
+    await tester.pumpAndSettle();
+    expect(find.text('상세 550'), findsOneWidget);
   });
 }
