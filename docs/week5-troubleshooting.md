@@ -106,3 +106,29 @@ ViewModel 상태: status = success, selectedGenreIds = [28]
 수정: 선택한 장르를 가진 영화는 그 장르 이름을 먼저 쓰도록 movieSubtitle(preferredGenreIds:)를 추가했다.
 재검증: 시뮬레이터에서 "액션 · 2026" 확인 (week5-03-genre-action.png), Unit·Widget 테스트 추가
 ```
+
+## 7. Wi-Fi를 끄고 새로고침하면 재시도 Dialog가 뜸 (Challenge: 요청 실패 재현)
+
+```
+상황과 재현 순서: 영화 목록 30편 표시 → Mac Wi-Fi 끄기(시뮬레이터는 Mac 네트워크를 씀) → 당겨서 새로고침
+호출 API: Discover
+Query parameter(Token 제외): {language: ko-KR, page: 1, sort_by: popularity.desc, include_adult: false, include_video: false}
+기대한 상태와 결과 개수: 기존 30편 유지 + 재시도 Dialog
+실제 status / 응답 모양: 응답 없음 (connectionError, status null)
+ViewModel 상태: status = success 유지, isRefreshing true → false, refresh()가 false 반환
+원인: DNS 조회 실패 — Failed host lookup: 'api.themoviedb.org'
+수정: (의도한 동작) 목록을 비우지 않고 Dialog로 취소/재시도를 고르게 했다.
+재검증: Dialog를 띄운 채 Wi-Fi 연결 → 재시도 → Dialog가 닫히고 page 1, 2가 200으로 다시 와서 목록이 교체됨 (5주차_영상4)
+```
+
+실제 오류 로그 (Authorization은 가려져 있다):
+
+```
+[TMDB 요청] GET https://api.themoviedb.org/3/discover/movie?language=ko-KR&page=1&sort_by=popularity.desc&include_adult=false&include_video=false
+[TMDB 요청 Header] {Authorization: Bearer ***, accept: application/json}
+[TMDB 오류] GET https://api.themoviedb.org/3/discover/movie?language=ko-KR&page=1&sort_by=popularity.desc&include_adult=false&include_video=false
+[TMDB 오류 Header] {Authorization: Bearer ***, accept: application/json}
+[TMDB 오류 내용] connectionError / status null / The connection errored: Failed host lookup: 'api.themoviedb.org' This indicates an error which most likely cannot be solved by the library.
+```
+
+같은 상태에서 홈 탭으로 가면 홈은 "네트워크에 연결할 수 없어요." Error 화면이 되고, Wi-Fi를 켠 뒤 `다시 시도`를 누르면 인기 영화가 다시 뜬다 (5주차_영상3).

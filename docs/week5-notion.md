@@ -20,7 +20,7 @@
 - [ ] 인기 영화 5개 홈 화면 🖼️ `week5-01-home-popular.png`
 - [ ] Discover 최대 30개 목록 화면 🖼️ `week5-02-movies-30.png` ("인기순 30편")
 - [ ] 장르 선택 전/후 Network 요청과 목록 변화 영상 🖼️ `5주차영상1.mp4` + 선택 후 캡처 `week5-03-genre-action.png`
-- [ ] Loading / Empty / Error / Success 🖼️ `week5-04-loading.png` · `week5-05-empty.png` · `week5-06-error-401.png` · `week5-02-movies-30.png`
+- [ ] Loading / Empty / Error / Success (+ Error → 다시 시도 성공 `5주차_영상3.mov`) 🖼️ `week5-04-loading.png` · `week5-05-empty.png` · `week5-06-error-401.png` · `week5-02-movies-30.png`
 - [ ] 포스터 없는 영화의 placeholder 🖼️ `week5-07-placeholder.png`
 - [ ] `flutter analyze` 결과와 수동 검증 결과
 
@@ -92,13 +92,13 @@ Future<List<TmdbMovieDto>> fetchUpToThirtyMovies({List<int>? genreIds}) async {
 
 - [x] Pull to Refresh — `RefreshIndicator`. 같은 장르로 page 1부터, 기존 목록 유지, Loading 중엔 비활성
 - [x] 장르 다중 선택 — 3주차 BottomSheet 재사용, `List<int>` → `with_genres=28|18` (OR)
-- [x] 재시도 Dialog — 새로고침 실패 시 목록 유지 + 취소/재시도 🖼️ `week5-08-retry-dialog.png`
-- [x] 요청 실패 로그 재현 — Token 없이 401, URL·오류 메시지·Body가 남고 Authorization은 `Bearer ***`
+- [x] 재시도 Dialog — 새로고침 실패 시 목록 유지 + 취소/재시도 🖼️ `week5-08-retry-dialog.png` + `5주차_영상2.mov`(Wi-Fi 끄고 Dialog) + `5주차_영상4_합본.mp4`(Wi-Fi 켜고 재시도 → 목록 교체)
+- [x] 요청 실패 로그 재현 — Token 없이 401 / Wi-Fi 끄고 connectionError. URL·오류 메시지가 남고 Authorization은 `Bearer ***`
 - [ ] release 모드 로그 미출력 확인 (`flutter run --release`)
 
 ## 🛠 트러블슈팅
 
-(`docs/week5-troubleshooting.md` 6건을 그대로 붙여넣는다 — 템플릿 형식 유지)
+(`docs/week5-troubleshooting.md` 7건을 그대로 붙여넣는다 — 템플릿 형식 유지)
 
 ## ✅ 최종 체크리스트
 
@@ -125,7 +125,7 @@ Genre API 및 with_genres 요청 증거: 5주차영상1.mp4 + 로그 [TMDB 요�
 Loading / Empty / Error / Success: week5-04 / 05 / 06 / 02
 포스터 null·실패 처리: TmdbPosterImage (null·빈 문자열·errorBuilder → placeholder), week5-07-placeholder.png
 movie.id 전달 위치: context.push('/movies/${movie.id}', extra: movie) → RatingDialog(movieId: movie.id) → CreateRatingRequest
-트러블슈팅: 6건
+트러블슈팅: 7건
 미검증 항목: (있으면 적기)
 ```
 
