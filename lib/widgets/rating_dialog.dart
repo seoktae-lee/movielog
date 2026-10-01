@@ -1,15 +1,23 @@
 import 'package:flutter/material.dart';
 
+import '../data/models/create_rating_request.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import 'movie_rating_input.dart';
 
 /// 별점을 고르는 커스텀 Dialog.
 ///
-/// 확인을 누르면 고른 평점(double)을 `Navigator.pop`의 결과로 돌려주고,
-/// 바깥을 눌러 닫으면 null이 돌아간다.
+/// 확인을 누르면 [movieId]와 고른 평점을 묶은 [CreateRatingRequest]를
+/// `Navigator.pop`의 결과로 돌려주고, 바깥을 눌러 닫으면 null이 돌아간다.
 class RatingDialog extends StatefulWidget {
-  const RatingDialog({super.key, this.initialRating = 0});
+  const RatingDialog({
+    super.key,
+    required this.movieId,
+    this.initialRating = 0,
+  });
+
+  /// 평점을 남길 영화의 TMDB id. 목록 index가 아니다.
+  final int movieId;
 
   /// 이미 남긴 평점이 있으면 그 값에서 시작한다.
   final double initialRating;
@@ -77,7 +85,13 @@ class _RatingDialogState extends State<RatingDialog> {
                   child: ElevatedButton(
                     // 별점이 없으면 null을 넘겨 버튼을 비활성화한다.
                     onPressed: hasRating
-                        ? () => Navigator.pop(context, _rating)
+                        ? () => Navigator.pop(
+                            context,
+                            CreateRatingRequest(
+                              movieId: widget.movieId,
+                              score: _rating,
+                            ),
+                          )
                         : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.violet,

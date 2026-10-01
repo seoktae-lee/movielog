@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 
-import '../models/movie.dart';
+import '../data/models/tmdb_movie_dto.dart';
 import '../theme/app_colors.dart';
+import 'tmdb_movie_card.dart';
+import 'tmdb_poster_image.dart';
 
 /// 홈 상단에 크게 보여 주는 대표 영화 카드.
+///
+/// 가로로 넓은 자리라 세로 포스터 대신 TMDB의 `backdrop_path`를 쓰고,
+/// 없으면 포스터로, 둘 다 없으면 placeholder로 대신한다.
 class FeaturedMovieCard extends StatelessWidget {
   const FeaturedMovieCard({
     super.key,
@@ -11,7 +16,7 @@ class FeaturedMovieCard extends StatelessWidget {
     required this.onTap,
   });
 
-  final Movie movie;
+  final TmdbMovieDto movie;
   final VoidCallback onTap;
 
   @override
@@ -28,7 +33,10 @@ class FeaturedMovieCard extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                Image.asset(movie.posterAsset, fit: BoxFit.cover),
+                TmdbPosterImage(
+                  posterPath: movie.backdropPath ?? movie.posterPath,
+                  size: movie.backdropPath != null ? 'w780' : 'w500',
+                ),
                 // 아래쪽을 어둡게 깔아 흰 글자가 포스터 위에서도 읽히게 한다.
                 const DecoratedBox(
                   decoration: BoxDecoration(
@@ -57,7 +65,7 @@ class FeaturedMovieCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Text(
-                          '오늘의 추천',
+                          '지금 1위',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -78,7 +86,7 @@ class FeaturedMovieCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '${movie.genre} · ${movie.year}',
+                        releaseYearOf(movie)?.toString() ?? '',
                         style: const TextStyle(
                           fontSize: 13,
                           color: Color(0xDDFFFFFF),
