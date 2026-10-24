@@ -9,7 +9,7 @@
 | --- | --- |
 | 이름 / 닉네임 | 이석태 / 태이 |
 | GitHub 저장소 | https://github.com/seoktae-lee/movielog |
-| Pull Request | (PR 만든 뒤 링크) |
+| Pull Request | https://github.com/seoktae-lee/movielog/pull/8 |
 | 브랜치 | `feature/week-6` |
 | 사용 API | 워크북 Swagger v5 (`https://workbook.devnoco.com/v5`) + TMDB 상세 |
 | 검증 | `flutter analyze` 0건 / `flutter test` 81개 통과 |
@@ -182,7 +182,7 @@ GoRoute(
 ## 📮 제출 양식
 
 ```
-PR 링크: (PR 만든 뒤)
+PR 링크: https://github.com/seoktae-lee/movielog/pull/8
 확인 전/통신 중/가능/중복 화면: week6-01 ~ 04
 입력 변경 시 무효화 화면 또는 영상: week6-05 (04와 비교)
 동일 문자열 재입력 시 즉시 에러 화면 또는 영상: week6-06 (재요청 0번)

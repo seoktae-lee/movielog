@@ -5,7 +5,7 @@
 | 항목 | 내용 |
 | --- | --- |
 | 브랜치 | `feature/week-6` (feature/week-5에서 분기) |
-| Pull Request | (생성 후 링크) |
+| Pull Request | https://github.com/seoktae-lee/movielog/pull/8 |
 | 사용 API | 워크북 Swagger v5 — 닉네임/이메일 중복 체크, 유저별 평점 조회 + TMDB `GET /movie/{id}` |
 | 검증 | `flutter analyze` 0건 / `flutter test` 81개 통과 |
 
