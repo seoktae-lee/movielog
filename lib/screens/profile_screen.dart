@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import 'widgets/common_app_bar.dart';
-import 'widgets/edit_profile_button.dart';
-import 'widgets/favorite_genres.dart';
-import 'widgets/profile_header.dart';
-import 'widgets/profile_stats.dart';
+import '../widgets/common_app_bar.dart';
+import '../widgets/edit_profile_button.dart';
+import '../widgets/favorite_genres.dart';
+import '../widgets/profile_header.dart';
+import '../widgets/profile_stats.dart';
 
 /// 1주차 정적인 영화 취향 프로필 화면.
 class ProfileScreen extends StatelessWidget {

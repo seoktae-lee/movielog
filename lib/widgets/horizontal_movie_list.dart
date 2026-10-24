@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../models/movie.dart';
-import 'movie_card.dart';
+import '../data/models/tmdb_movie_dto.dart';
+import 'tmdb_movie_card.dart';
 
-/// 영화 카드를 가로로 나열하는 목록.
+/// 영화 카드를 가로로 나열하는 목록. (홈의 "지금 인기 있는 영화")
 ///
 /// 가로 ListView는 높이를 스스로 정하지 못하므로 [SizedBox]로 높이를 고정한다.
 class HorizontalMovieList extends StatelessWidget {
@@ -13,13 +13,15 @@ class HorizontalMovieList extends StatelessWidget {
     required this.onMovieTap,
   });
 
-  final List<Movie> movies;
-  final ValueChanged<Movie> onMovieTap;
+  final List<TmdbMovieDto> movies;
+  final ValueChanged<TmdbMovieDto> onMovieTap;
+
+  static const height = 236.0;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 236,
+      height: height,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -28,7 +30,7 @@ class HorizontalMovieList extends StatelessWidget {
         separatorBuilder: (context, index) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
           final movie = movies[index];
-          return MovieCard(
+          return TmdbMovieCard(
             movie: movie,
             width: 136,
             onTap: () => onMovieTap(movie),

@@ -1,23 +1,33 @@
 import 'package:flutter/material.dart';
 
-import '../models/movie.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 
-/// 홈과 영화 목록이 함께 쓰는 영화 카드.
+/// 홈·영화 목록·마이페이지가 함께 쓰는 영화 카드.
 ///
-/// 포스터·제목·장르·연도만 그리고, 눌렀을 때 무엇을 할지는 [onTap]으로 부모가 정한다.
+/// 포스터를 어떻게 가져오는지(TMDB 이미지인지 asset인지)는 모르고 [poster] Widget을 받아 그린다.
+/// 눌렀을 때 무엇을 할지는 [onTap]으로 부모가 정한다.
 /// 부모가 높이를 정해 주는 자리(가로 ListView, GridView 셀)에서 쓰는 것을 전제로 한다.
 class MovieCard extends StatelessWidget {
   const MovieCard({
     super.key,
-    required this.movie,
-    required this.onTap,
+    required this.poster,
+    required this.title,
+    required this.subtitle,
+    this.rating,
+    this.onTap,
     this.width,
   });
 
-  final Movie movie;
-  final VoidCallback onTap;
+  final Widget poster;
+  final String title;
+
+  /// "액션 · 2025"처럼 제목 아래 한 줄. 비어 있으면 그리지 않는다.
+  final String subtitle;
+
+  /// 포스터 오른쪽 위 배지에 표시할 평점. null이면 배지를 그리지 않는다.
+  final double? rating;
+  final VoidCallback? onTap;
 
   /// 가로 ListView에서는 너비를 고정해야 하고, GridView에서는 null로 두어 셀 너비를 따른다.
   final double? width;
@@ -40,12 +50,12 @@ class MovieCard extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.asset(movie.posterAsset, fit: BoxFit.cover),
-                    if (movie.rating != null)
+                    poster,
+                    if (rating != null)
                       Positioned(
                         top: 8,
                         right: 8,
-                        child: _RatingBadge(rating: movie.rating!),
+                        child: _RatingBadge(rating: rating!),
                       ),
                   ],
                 ),
@@ -53,7 +63,7 @@ class MovieCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              movie.title,
+              title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: AppTextStyles.bodyMedium.copyWith(
@@ -63,7 +73,7 @@ class MovieCard extends StatelessWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              '${movie.genre} · ${movie.year}',
+              subtitle,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: AppTextStyles.bodySmall,

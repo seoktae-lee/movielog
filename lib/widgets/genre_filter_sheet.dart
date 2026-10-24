@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../data/models/tmdb_genre_dto.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 
 /// 장르를 여러 개 고르는 BottomSheet.
 ///
 /// Checkbox를 켜고 끄는 동안에는 Sheet 안의 [_selected]만 바뀌고,
-/// 확인을 눌러야 고른 장르 집합이 `Navigator.pop`의 결과로 목록 화면에 전달된다.
+/// 확인을 눌러야 고른 장르 ID 목록이 `Navigator.pop`의 결과로 목록 화면에 전달된다.
+/// 5주차부터는 장르 이름이 아니라 Genre API의 id를 주고받는다.
 class GenreFilterSheet extends StatefulWidget {
   const GenreFilterSheet({
     super.key,
@@ -14,8 +16,8 @@ class GenreFilterSheet extends StatefulWidget {
     required this.initialSelected,
   });
 
-  final List<String> genres;
-  final Set<String> initialSelected;
+  final List<TmdbGenreDto> genres;
+  final List<int> initialSelected;
 
   @override
   State<GenreFilterSheet> createState() => _GenreFilterSheetState();
@@ -23,14 +25,14 @@ class GenreFilterSheet extends StatefulWidget {
 
 class _GenreFilterSheetState extends State<GenreFilterSheet> {
   // 부모가 준 집합을 그대로 고치지 않도록 복사본을 만든다.
-  late final Set<String> _selected = {...widget.initialSelected};
+  late final Set<int> _selected = {...widget.initialSelected};
 
-  void _toggle(String genre, bool? checked) {
+  void _toggle(int genreId, bool? checked) {
     setState(() {
       if (checked ?? false) {
-        _selected.add(genre);
+        _selected.add(genreId);
       } else {
-        _selected.remove(genre);
+        _selected.remove(genreId);
       }
     });
   }
@@ -75,9 +77,9 @@ class _GenreFilterSheetState extends State<GenreFilterSheet> {
                 itemBuilder: (context, index) {
                   final genre = widget.genres[index];
                   return CheckboxListTile(
-                    value: _selected.contains(genre),
-                    onChanged: (checked) => _toggle(genre, checked),
-                    title: Text(genre, style: AppTextStyles.bodyMedium),
+                    value: _selected.contains(genre.id),
+                    onChanged: (checked) => _toggle(genre.id, checked),
+                    title: Text(genre.name, style: AppTextStyles.bodyMedium),
                     activeColor: AppColors.violet,
                     controlAffinity: ListTileControlAffinity.leading,
                   );
@@ -90,7 +92,11 @@ class _GenreFilterSheetState extends State<GenreFilterSheet> {
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context, _selected),
+                  // Genre API 순서대로 정렬해 돌려준다. (선택 순서와 무관하게 같은 Query가 되도록)
+                  onPressed: () => Navigator.pop(context, [
+                    for (final genre in widget.genres)
+                      if (_selected.contains(genre.id)) genre.id,
+                  ]),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.violet,
                     foregroundColor: AppColors.white,

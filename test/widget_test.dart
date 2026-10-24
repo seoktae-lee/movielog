@@ -3,12 +3,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
-import 'package:movielog/profile_screen.dart';
-import 'package:movielog/sign_up_screen.dart';
-import 'package:movielog/start_screen.dart';
+import 'package:movielog/screens/profile_screen.dart';
+import 'package:movielog/screens/sign_up_screen.dart';
+import 'package:movielog/screens/start_screen.dart';
 import 'package:movielog/theme/app_theme.dart';
+import 'package:movielog/view_models/sign_up_view_model.dart';
 import 'package:movielog/widgets/stat_item.dart';
+
+import 'support/fake_movielog_member_service.dart';
 
 void main() {
   testWidgets('프로필 화면에 AppBar, 헤더, 통계 3개, 장르 3개, 수정 버튼이 표시된다', (
@@ -41,6 +45,15 @@ void main() {
   });
 
   group('회원가입 화면', () {
+    // 5주차부터 회원가입 화면은 중복 확인을 위해 SignUpViewModel을 읽는다.
+    late FakeMovieLogMemberService memberService;
+    setUp(() => memberService = FakeMovieLogMemberService());
+
+    Widget withViewModel(Widget child) => ChangeNotifierProvider(
+      create: (_) => SignUpViewModel(memberService),
+      child: child,
+    );
+
     Finder signUpButton() => find.widgetWithText(FilledButton, '가입하기');
 
     bool isEnabled(WidgetTester tester) =>
@@ -48,7 +61,10 @@ void main() {
 
     testWidgets('입력 전에는 가입 버튼이 비활성화된다', (WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(theme: AppTheme.light, home: const SignUpScreen()),
+        MaterialApp(
+          theme: AppTheme.light,
+          home: withViewModel(const SignUpScreen()),
+        ),
       );
 
       expect(find.text('회원가입'), findsOneWidget);
@@ -62,7 +78,10 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(theme: AppTheme.light, home: const SignUpScreen()),
+        MaterialApp(
+          theme: AppTheme.light,
+          home: withViewModel(const SignUpScreen()),
+        ),
       );
 
       // canSubmit(느슨한 조건)은 통과하지만 validator(정규식)는 실패하는 이메일.
@@ -90,7 +109,7 @@ void main() {
         routes: [
           GoRoute(
             path: '/register',
-            builder: (context, state) => const SignUpScreen(),
+            builder: (context, state) => withViewModel(const SignUpScreen()),
           ),
           GoRoute(
             path: '/home',
@@ -111,12 +130,77 @@ void main() {
       await tester.tap(signUpButton());
       await tester.pump();
 
+      // 중복 확인을 안 눌렀어도 가입 직전에 서버에 한 번 묻는다.
+      expect(memberService.nicknameCalls, ['태이']);
+      expect(memberService.emailCalls, ['a@b.com']);
       expect(find.text('태이님, 가입을 환영합니다!'), findsOneWidget);
 
       // go로 이동했으므로 회원가입 화면은 사라지고 홈만 남는다.
       await tester.pumpAndSettle();
       expect(find.text('테스트용 홈'), findsOneWidget);
       expect(find.byType(SignUpScreen), findsNothing);
+    });
+
+    testWidgets('중복 확인 버튼: 이미 쓰는 닉네임이면 오류, 새 닉네임이면 사용 가능 표시', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: withViewModel(const SignUpScreen()),
+        ),
+      );
+
+      await tester.enterText(find.byType(TextFormField).at(0), '수현');
+      await tester.tap(find.widgetWithText(TextButton, '중복 확인').first);
+      await tester.pump();
+      expect(find.text('이미 사용 중인 닉네임이에요.'), findsOneWidget);
+
+      // 값을 바꾸면 이전 결과가 사라지고 다시 확인할 수 있다.
+      await tester.enterText(find.byType(TextFormField).at(0), '태이');
+      await tester.pump();
+      expect(find.text('이미 사용 중인 닉네임이에요.'), findsNothing);
+
+      await tester.tap(find.widgetWithText(TextButton, '중복 확인').first);
+      await tester.pump();
+      expect(find.text('사용할 수 있는 닉네임이에요.'), findsOneWidget);
+      expect(find.byIcon(Icons.check_circle), findsOneWidget);
+    });
+
+    testWidgets('형식이 틀리면 서버에 묻지 않는다', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: withViewModel(const SignUpScreen()),
+        ),
+      );
+
+      await tester.enterText(find.byType(TextFormField).at(1), 'not-email');
+      await tester.tap(find.widgetWithText(TextButton, '중복 확인').last);
+      await tester.pump();
+
+      expect(find.text('올바른 이메일 형식이 아닙니다.'), findsOneWidget);
+      expect(memberService.emailCalls, isEmpty);
+    });
+
+    testWidgets('이미 가입된 이메일이면 가입하지 않고 오류를 보여 준다', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: withViewModel(const SignUpScreen()),
+        ),
+      );
+
+      await tester.enterText(find.byType(TextFormField).at(0), '태이');
+      await tester.enterText(find.byType(TextFormField).at(1), 'noco@umc.com');
+      await tester.enterText(find.byType(TextFormField).at(2), '12345678');
+      await tester.tap(find.byType(CheckboxListTile));
+      await tester.pump();
+      await tester.tap(signUpButton());
+      await tester.pump();
+
+      expect(find.text('이미 가입된 이메일이에요.'), findsOneWidget);
+      expect(find.textContaining('가입을 환영합니다'), findsNothing);
     });
   });
 }
