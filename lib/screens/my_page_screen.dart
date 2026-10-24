@@ -1,23 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 
 import '../data/mock_movies.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_text_styles.dart';
-import '../view_models/my_ratings_view_model.dart';
 import '../widgets/common_app_bar.dart';
 import '../widgets/edit_profile_button.dart';
 import '../widgets/favorite_genres.dart';
 import '../widgets/movie_card.dart';
-import '../widgets/my_rating_tile.dart';
 import '../widgets/profile_header.dart';
 import '../widgets/profile_stats.dart';
 import '../widgets/section_header.dart';
 
 /// 마이페이지. 1주차 프로필 위젯을 그대로 재사용한다.
 ///
-/// 5주차: "내가 남긴 평점"을 MovieLog 서버(`GET /members/{memberId}/ratings`)에서 가져온다.
+/// 6주차: "내가 등록한 평점" 진입 행을 두고, 목록은 자식 화면(`MyRatingsScreen`)이 보여 준다.
 /// 즐겨찾기는 8주차에 서버와 연결하기 전까지 Mock이다.
 class MyPageScreen extends StatelessWidget {
   const MyPageScreen({super.key});
@@ -48,10 +44,17 @@ class MyPageScreen extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 24),
-          const SectionHeader(title: '내가 남긴 평점'),
-          const SizedBox(height: 4),
-          const _MyRatingsSection(),
+          const SizedBox(height: 16),
+          // 6주차: 평점은 자식 화면(/my/ratings)으로 분리했다.
+          // push라서 뒤로 가면 마이페이지로 돌아온다.
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+            leading: const Icon(Icons.star_outline, color: AppColors.violet),
+            title: const Text('내가 등록한 평점'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/my/ratings'),
+          ),
+          const Divider(height: 1, indent: 16, endIndent: 16),
           const SizedBox(height: 24),
           const SectionHeader(title: '즐겨찾기한 영화'),
           const SizedBox(height: 8),
@@ -79,85 +82,6 @@ class MyPageScreen extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: 16),
             child: EditProfileButton(),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-/// "내가 남긴 평점" 영역. 이 부분만 ViewModel 상태에 따라 다시 그린다.
-class _MyRatingsSection extends StatelessWidget {
-  const _MyRatingsSection();
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<MyRatingsViewModel>(
-      builder: (context, viewModel, child) {
-        switch (viewModel.status) {
-          case MyRatingsLoadStatus.idle:
-          case MyRatingsLoadStatus.loading:
-            return const Padding(
-              padding: EdgeInsets.all(24),
-              child: Center(child: CircularProgressIndicator()),
-            );
-          case MyRatingsLoadStatus.error:
-            return _RatingsMessage(
-              message: viewModel.message ?? '평점을 불러오지 못했어요.',
-              actionLabel: '다시 시도',
-              onAction: () => context.read<MyRatingsViewModel>().load(),
-            );
-          case MyRatingsLoadStatus.empty:
-            return const _RatingsMessage(message: '아직 남긴 평점이 없어요.');
-          case MyRatingsLoadStatus.success:
-            return Column(
-              children: [
-                for (final item in viewModel.items)
-                  MyRatingTile(
-                    item: item,
-                    // TMDB id로 상세에 간다. 받은 영화 정보가 있으면 extra로 넘겨 다시 부르지 않는다.
-                    onTap: () => context.push(
-                      '/movies/${item.rating.movieId}',
-                      extra: item.movie,
-                    ),
-                  ),
-              ],
-            );
-        }
-      },
-    );
-  }
-}
-
-class _RatingsMessage extends StatelessWidget {
-  const _RatingsMessage({
-    required this.message,
-    this.actionLabel,
-    this.onAction,
-  });
-
-  final String message;
-  final String? actionLabel;
-  final VoidCallback? onAction;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Column(
-        children: [
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: AppTextStyles.bodySmall,
-          ),
-          if (actionLabel != null && onAction != null)
-            TextButton(
-              onPressed: onAction,
-              child: Text(
-                actionLabel!,
-                style: const TextStyle(color: AppColors.violet),
-              ),
-            ),
         ],
       ),
     );

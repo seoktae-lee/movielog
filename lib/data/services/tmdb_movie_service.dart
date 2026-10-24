@@ -72,4 +72,17 @@ class TmdbMovieService {
     );
     return TmdbMovieDto.fromJson(response.data ?? const {});
   }
+
+  /// [fetchMovieDetail]과 같지만, TMDB에 없는 영화(404)면 예외 대신 null을 돌려준다.
+  ///
+  /// 404만 null로 바꾼다. 네트워크 오류 같은 다른 실패는 그대로 던져
+  /// 호출한 쪽이 "없는 영화"와 "일시적 실패"를 구분할 수 있게 한다.
+  Future<TmdbMovieDto?> findMovieById(int movieId) async {
+    try {
+      return await fetchMovieDetail(movieId);
+    } on DioException catch (error) {
+      if (error.response?.statusCode == 404) return null;
+      rethrow;
+    }
+  }
 }
