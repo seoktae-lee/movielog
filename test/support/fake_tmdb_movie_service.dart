@@ -63,6 +63,17 @@ class FakeTmdbMovieService implements TmdbMovieService {
     return onDetail(movieId);
   }
 
+  /// 실제 Service와 같은 규칙: 404만 null, 나머지 실패는 그대로 던진다.
+  @override
+  Future<TmdbMovieDto?> findMovieById(int movieId) async {
+    try {
+      return await fetchMovieDetail(movieId);
+    } on DioException catch (error) {
+      if (error.response?.statusCode == 404) return null;
+      rethrow;
+    }
+  }
+
   static Future<TmdbMoviePageDto> _defaultPopular(int page) async =>
       TmdbMoviePageDto.fromJson(pageJson(idRange(100, 20)));
 

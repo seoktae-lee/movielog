@@ -64,6 +64,8 @@ class MovieLogTextFormField extends StatelessWidget {
         helperText: helperText,
         helperStyle: helperColor == null ? null : TextStyle(color: helperColor),
         errorText: errorText,
+        // 입력창 옆에 버튼이 있어 폭이 좁다. 긴 오류 문구가 잘리지 않게 두 줄까지 허용한다.
+        errorMaxLines: 2,
         border: const OutlineInputBorder(),
       ),
       keyboardType: keyboardType,

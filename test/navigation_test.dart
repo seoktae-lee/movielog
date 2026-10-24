@@ -8,13 +8,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:movielog/app/movie_log_app.dart';
-import 'package:movielog/data/services/movielog_member_service.dart';
 import 'package:movielog/data/models/tmdb_movie_page.dart';
 import 'package:movielog/router/app_router.dart';
 import 'package:movielog/screens/home_screen.dart';
 import 'package:movielog/screens/movie_detail_screen.dart';
 import 'package:movielog/screens/movie_list_screen.dart';
+import 'package:movielog/screens/main_screen.dart';
 import 'package:movielog/screens/my_page_screen.dart';
+import 'package:movielog/screens/my_ratings_screen.dart';
 import 'package:movielog/screens/sign_up_screen.dart';
 import 'package:movielog/widgets/genre_filter_sheet.dart';
 import 'package:movielog/widgets/horizontal_movie_list.dart';
@@ -22,17 +23,19 @@ import 'package:movielog/widgets/movie_list_error.dart';
 import 'package:movielog/widgets/movie_list_loading.dart';
 import 'package:movielog/widgets/rating_dialog.dart';
 
-import 'support/fake_movielog_member_service.dart';
+import 'support/fake_movielog_services.dart';
 import 'support/fake_tmdb_movie_service.dart';
 import 'support/tmdb_fixtures.dart';
 
 void main() {
   late FakeTmdbMovieService service;
-  late FakeMovieLogMemberService memberService;
+  late FakeMemberCheckService checkService;
+  late FakeRatingApiService ratingService;
 
   setUp(() {
     service = FakeTmdbMovieService();
-    memberService = FakeMovieLogMemberService();
+    checkService = FakeMemberCheckService();
+    ratingService = FakeRatingApiService();
   });
 
   // AppRouter.router는 앱 전체에 하나뿐(static)이라 테스트 사이에 위치가 남는다.
@@ -46,7 +49,11 @@ void main() {
     // 앱을 그리기 전에 위치를 옮겨야 이전 테스트의 화면이 잠깐이라도 만들어지지 않는다.
     AppRouter.router.go(location);
     await tester.pumpWidget(
-      MovieLogApp(movieService: service, memberService: memberService),
+      MovieLogApp(
+        movieService: service,
+        memberCheckService: checkService,
+        ratingApiService: ratingService,
+      ),
     );
     await tester.pumpAndSettle();
   }
@@ -66,7 +73,10 @@ void main() {
     await tester.enterText(find.byType(TextFormField).at(2), '12345678');
     await tester.tap(find.byType(CheckboxListTile));
     await tester.pump();
-    await tester.tap(find.widgetWithText(FilledButton, '가입하기'));
+    await tester.tap(find.text('중복 확인').first);
+    await tester.tap(find.text('중복 확인').last);
+    await tester.pump();
+    await tester.tap(find.text('가입하기'));
     await tester.pumpAndSettle();
 
     expect(find.byType(HomeScreen), findsOneWidget);
@@ -337,35 +347,63 @@ void main() {
     expect(service.detailCalls, isEmpty);
   });
 
-  testWidgets('마이페이지는 자체 API의 내 평점에 TMDB 제목을 붙여 보여 준다', (tester) async {
+  testWidgets('마이페이지 → 내가 등록한 평점: NavigationBar 없이 열리고 뒤로 가면 돌아온다', (
+    tester,
+  ) async {
     await pumpAppAt(tester, '/my');
+    expect(find.byType(MyPageScreen), findsOneWidget);
+    expect(find.byType(NavigationBar), findsOneWidget);
+    // 마이페이지만 열었을 때는 평점을 부르지 않는다.
+    expect(ratingService.calls, isEmpty);
 
-    // 로그인 전까지는 1번 회원으로 고정
-    expect(memberService.ratingCalls, [1]);
-    expect(find.text('내가 남긴 평점'), findsOneWidget);
-    expect(find.text('상세 155'), findsOneWidget);
-    expect(find.text('다시 봐도 명작'), findsOneWidget);
-    expect(find.textContaining('movieId 155'), findsOneWidget);
-
-    // 평점을 누르면 TMDB id로 상세에 가고, 이미 받은 영화 정보를 쓰므로 상세 API를 다시 부르지 않는다.
-    service.detailCalls.clear();
-    await tester.tap(find.text('상세 155'));
+    await tester.tap(find.text('내가 등록한 평점'));
     await tester.pumpAndSettle();
-    expect(currentLocation(), '/movies/155');
+
+    expect(find.byType(MyRatingsScreen), findsOneWidget);
+    expect(currentLocation(), '/my/ratings');
+    // root Navigator에 쌓였으므로 Shell(MainScreen)의 NavigationBar가 가려진다.
+    expect(find.byType(NavigationBar), findsNothing);
+    expect(ratingService.calls, [1]);
+
+    // TMDB 제목·점수·후기·등록일. comment가 null인 평점은 후기를 그리지 않는다.
+    expect(find.text('상세 680'), findsOneWidget);
+    expect(find.text('다시 봐도 좋다'), findsOneWidget);
+    expect(find.text('3.0'), findsOneWidget);
+    expect(find.textContaining('등록'), findsWidgets);
+    expect(find.text('학습용 memberId 1의 공개 평점 3개'), findsOneWidget);
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.byType(MyPageScreen), findsOneWidget);
+    expect(find.byType(MainScreen), findsOneWidget);
+    expect(currentLocation(), '/my');
+  });
+
+  testWidgets('평점 카드를 누르면 받은 영화 정보로 상세에 간다', (tester) async {
+    await pumpAppAt(tester, '/my/ratings');
+    service.detailCalls.clear();
+
+    await tester.tap(find.text('상세 550'));
+    await tester.pumpAndSettle();
+    expect(currentLocation(), '/movies/550');
     expect(service.detailCalls, isEmpty);
   });
 
-  testWidgets('자체 서버가 꺼져 있으면 마이페이지 평점 영역에 안내와 다시 시도가 보인다', (tester) async {
-    memberService.error = const MovieLogApiException(
-      'MovieLog 서버에 연결할 수 없어요. 서버가 켜져 있는지 확인해 주세요.',
-    );
-    await pumpAppAt(tester, '/my');
+  testWidgets('평점 조회 실패면 Error 문구와 다시 시도, 성공하면 목록', (tester) async {
+    ratingService.error = fakeMovieLogError(statusCode: 404);
+    await pumpAppAt(tester, '/my/ratings');
 
-    expect(find.textContaining('서버에 연결할 수 없어요'), findsOneWidget);
+    expect(find.text('존재하지 않는 회원입니다.'), findsOneWidget);
 
-    memberService.error = null;
-    await tester.tap(find.widgetWithText(TextButton, '다시 시도'));
+    ratingService.error = null;
+    await tester.tap(find.text('다시 시도'));
     await tester.pumpAndSettle();
     expect(find.text('상세 550'), findsOneWidget);
+  });
+
+  testWidgets('평점이 없으면 Empty 화면', (tester) async {
+    ratingService.ratings = [];
+    await pumpAppAt(tester, '/my/ratings');
+    expect(find.text('아직 등록한 평점이 없습니다.'), findsOneWidget);
   });
 }

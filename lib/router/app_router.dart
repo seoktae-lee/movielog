@@ -1,17 +1,20 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../data/models/tmdb_movie_dto.dart';
-import '../core/config/movielog_api_config.dart';
-import '../data/services/movielog_member_service.dart';
+import '../data/services/member_check_service.dart';
+import '../data/services/rating_api_service.dart';
 import '../data/services/tmdb_movie_service.dart';
 
+import '../screens/debug/button_width_demo_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/main_screen.dart';
 import '../screens/movie_detail_screen.dart';
 import '../screens/movie_list_screen.dart';
 import '../screens/my_page_screen.dart';
+import '../screens/my_ratings_screen.dart';
 import '../screens/sign_up_screen.dart';
 import '../screens/start_screen.dart';
 import '../view_models/movie_detail_view_model.dart';
@@ -31,6 +34,7 @@ import '../view_models/sign_up_view_model.dart';
 /// │  /home               홈
 /// │  /movies             영화 목록 (장르 선택은 ViewModel이 관리)
 /// │  /my                 마이페이지
+/// │    /my/ratings       내가 등록한 평점 (root Navigator에 push → NavigationBar 없음)
 /// └
 /// /movies/:movieId       영화 상세 (TMDB id, Shell 밖이라 NavigationBar 없음)
 /// ```
@@ -42,17 +46,33 @@ class AppRouter {
   // private 생성자: 외부에서 AppRouter()로 객체를 만들지 못하게 막는다.
   AppRouter._();
 
+  /// 앱 전체(root) Navigator를 가리키는 키. 클래스에서 한 번만 선언한다.
+  ///
+  /// ShellRoute 안의 GoRoute는 기본으로 Shell의 Navigator(NavigationBar가 있는 쪽)에 쌓인다.
+  /// 이 키를 parentNavigatorKey로 주면 Shell 바깥, 앱 전체 Navigator 위에 쌓인다.
+  static final rootNavigatorKey = GlobalKey<NavigatorState>();
+
+  /// 디버그 캡처용 시작 경로. (`--dart-define=INITIAL_LOCATION=/my/ratings`)
+  /// release 빌드에서는 항상 '/start'다.
+  static const _debugInitialLocation = String.fromEnvironment(
+    'INITIAL_LOCATION',
+  );
+
   // 앱 전체에서 라우터는 하나만 쓰므로 static final로 둔다.
   static final router = GoRouter(
     // 앱을 켰을 때 처음 보여줄 경로
-    initialLocation: '/start',
+    initialLocation: kDebugMode && _debugInitialLocation.isNotEmpty
+        ? _debugInitialLocation
+        : '/start',
+    // GoRouter 전체가 쓸 root Navigator로 등록한다.
+    navigatorKey: rootNavigatorKey,
     routes: [
       GoRoute(path: '/start', builder: (context, state) => const StartScreen()),
       GoRoute(
         path: '/register',
         builder: (context, state) => ChangeNotifierProvider<SignUpViewModel>(
           create: (context) =>
-              SignUpViewModel(context.read<MovieLogMemberService>()),
+              SignUpViewModel(context.read<MemberCheckService>()),
           child: const SignUpScreen(),
         ),
       ),
@@ -90,19 +110,32 @@ class AppRouter {
           ),
           GoRoute(
             path: '/my',
-            builder: (context, state) =>
-                ChangeNotifierProvider<MyRatingsViewModel>(
-                  create: (context) => MyRatingsViewModel(
-                    context.read<MovieLogMemberService>(),
-                    context.read<TmdbMovieService>(),
-                    // 로그인(7주차) 전까지는 시드 데이터의 1번 회원으로 고정한다.
-                    memberId: MovieLogApiConfig.currentMemberId,
-                  )..load(),
-                  child: const MyPageScreen(),
-                ),
+            builder: (context, state) => const MyPageScreen(),
+            routes: [
+              GoRoute(
+                path: 'ratings', // 최종 경로: /my/ratings
+                // root Navigator 위에 표시해 하단 NavigationBar를 가린다.
+                parentNavigatorKey: rootNavigatorKey,
+                builder: (context, state) =>
+                    ChangeNotifierProvider<MyRatingsViewModel>(
+                      create: (context) => MyRatingsViewModel(
+                        context.read<RatingApiService>(),
+                        context.read<TmdbMovieService>(),
+                        sampleMemberId, // 6주차는 학습용 ID 1이다.
+                      )..load(),
+                      child: const MyRatingsScreen(),
+                    ),
+              ),
+            ],
           ),
         ],
       ),
+      // 디버그 전용: MovieLogButton 너비·상태 비교 (release에는 없음)
+      if (kDebugMode)
+        GoRoute(
+          path: '/debug/buttons',
+          builder: (context, state) => const ButtonWidthDemoScreen(),
+        ),
       // 상세는 Shell 바깥에 두어 전체 화면으로 열리고, push로 왔으니 pop으로 돌아간다.
       GoRoute(
         path: '/movies/:movieId',
