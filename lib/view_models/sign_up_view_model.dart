@@ -120,10 +120,17 @@ class SignUpViewModel extends ChangeNotifier {
     } on DioException catch (error) {
       submitStatus = SubmitStatus.error;
       final message = writeSignUpErrorMessage(error);
-      if (error.response?.statusCode == 400 && message.contains('비밀번호')) {
+      final status = error.response?.statusCode;
+      if (status == 400 && message.contains('비밀번호')) {
         passwordErrorText = message;
       } else {
         snackbarMessage = message;
+      }
+      // 최종 409: 중복 확인 뒤 그 사이 누군가 같은 값을 가입했다.
+      // 체크 표시가 남아 있으면 안 되므로 해당 칸을 duplicated로 되돌려 값을 바꾸게 한다.
+      if (status == 409) {
+        if (message.contains('이메일')) _email.markDuplicated(request.email);
+        if (message.contains('닉네임')) _nickname.markDuplicated(request.nickname);
       }
     } on StateError {
       submitStatus = SubmitStatus.error;
@@ -237,6 +244,17 @@ class DuplicateCheckField {
       errorText = errorMessage;
     }
     notify();
+  }
+
+  /// 서버가 최종 가입 단계(409)에서 중복이라고 알려 준 값을 duplicated로 기록한다.
+  void markDuplicated(String value) {
+    final trimmed = value.trim();
+    _requestVersion++;
+    _duplicatedValue = trimmed;
+    if (_currentValue == trimmed || _currentValue.isEmpty) {
+      status = CheckStatus.duplicated;
+      errorText = duplicatedMessage;
+    }
   }
 
   /// 화면을 떠날 때 기다리던 응답을 모두 무시하게 한다.

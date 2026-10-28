@@ -270,7 +270,16 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.text('이미 사용 중인 닉네임입니다.'), findsOneWidget);
+      // Snackbar + 해당 칸(닉네임)이 다시 duplicated 에러로 바뀐다.
+      expect(
+        find.descendant(
+          of: find.byType(SnackBar),
+          matching: find.text('이미 사용 중인 닉네임입니다.'),
+        ),
+        findsOneWidget,
+      );
+      expect(errorTextOf(tester, nicknameField()), '이미 사용 중인 닉네임입니다.');
+      expect(isEnabled(tester, submitButton()), isFalse);
       expect(find.byType(SignUpScreen), findsOneWidget);
       expect(session.memberId, isNull);
     });

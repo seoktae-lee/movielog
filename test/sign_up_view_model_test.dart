@@ -190,6 +190,26 @@ void main() {
       expect(viewModel.createdMemberId, isNull);
     });
 
+    test('최종 409 이메일 중복이면 이메일 칸의 확인 결과도 duplicated로 되돌린다', () async {
+      viewModel.onEmailChanged('new@umc.com');
+      await viewModel.checkEmail('new@umc.com');
+      viewModel.onNicknameChanged('태이');
+      await viewModel.checkNickname('태이');
+      expect(viewModel.isAllAvailable, isTrue);
+
+      service.signUpError = fakeMovieLogError(
+        statusCode: 409,
+        code: 'COMMON409',
+        message: '이미 사용 중인 이메일입니다.',
+      );
+      await viewModel.submit(request);
+
+      expect(viewModel.emailCheckStatus, CheckStatus.duplicated);
+      expect(viewModel.emailErrorText, '이미 가입된 이메일입니다.');
+      expect(viewModel.nicknameCheckStatus, CheckStatus.available);
+      expect(viewModel.isAllAvailable, isFalse);
+    });
+
     test('201인데 memberId가 없으면 가입 완료로 표시하지 않는다', () async {
       service.createdMemberId = null;
       await viewModel.submit(request);
