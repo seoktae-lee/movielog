@@ -3,19 +3,21 @@ import 'package:provider/provider.dart';
 
 import '../core/network/movie_log_client.dart';
 import '../core/network/tmdb_client.dart';
-import '../data/services/member_check_service.dart';
+import '../data/services/sign_up_service.dart';
 import '../data/services/rating_api_service.dart';
 import '../data/services/tmdb_movie_service.dart';
 import '../router/app_router.dart';
 import '../theme/app_theme.dart';
+import '../view_models/learning_member_session.dart';
 
 /// 앱 전체 설정을 담당하는 최상위 Widget.
 class MovieLogApp extends StatelessWidget {
   const MovieLogApp({
     super.key,
     this.movieService,
-    this.memberCheckService,
+    this.signUpService,
     this.ratingApiService,
+    this.initialMemberId,
   });
 
   /// 테스트에서 실제 TMDB 대신 fixture를 돌려주는 Service를 넣기 위한 통로.
@@ -23,8 +25,11 @@ class MovieLogApp extends StatelessWidget {
   final TmdbMovieService? movieService;
 
   /// 워크북 서버(자체 백엔드) Service. 테스트에서는 가짜를 넣는다.
-  final MemberCheckService? memberCheckService;
+  final SignUpService? signUpService;
   final RatingApiService? ratingApiService;
+
+  /// 학습용 세션의 시작 memberId. 테스트·디버그 캡처에서만 넣는다. (기본은 가입 전 null)
+  final int? initialMemberId;
 
   @override
   Widget build(BuildContext context) {
@@ -41,10 +46,16 @@ class MovieLogApp extends StatelessWidget {
         Provider<TmdbMovieService>(
           create: (_) => movieService ?? TmdbMovieService(createTmdbClient()),
         ),
-        // 회원가입 Form과 마이페이지가 함께 쓰는 상태 없는 Service.
-        Provider<MemberCheckService>(
-          create: (_) =>
-              memberCheckService ?? MemberCheckService(movieLogClient),
+        // 회원가입 결과 memberId. 영화 상세(등록)와 마이페이지(조회·수정·삭제)가 같은 값을 읽는다.
+        // 인증이 아니라 학습용 식별자다. 앱을 재시작하면 사라진다.
+        ChangeNotifierProvider<LearningMemberSession>(
+          create: (_) => LearningMemberSession(
+            memberId: initialMemberId ?? debugInitialMemberId(),
+          ),
+        ),
+        // 회원가입 Form이 쓰는 상태 없는 Service. (6주차 MemberCheckService)
+        Provider<SignUpService>(
+          create: (_) => signUpService ?? SignUpService(movieLogClient),
         ),
         Provider<RatingApiService>(
           create: (_) => ratingApiService ?? RatingApiService(movieLogClient),

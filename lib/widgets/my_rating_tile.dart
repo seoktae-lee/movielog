@@ -10,11 +10,27 @@ import 'tmdb_poster_image.dart';
 ///
 /// 점수·후기·등록일은 자체 백엔드에서, 제목·포스터는 TMDB에서 온다.
 /// TMDB에서 영화를 못 찾으면 placeholder를 그리고 평점 기록은 그대로 보여 준다.
+///
+/// 7주차: 카드 오른쪽에 개별 수정·삭제 버튼. 편집 모드([selected]가 null이 아님)에서는 그 자리에 CheckBox.
+/// 이 목록은 `memberId`(나)의 평점만 받으므로 모든 카드가 본인 평점이다.
+/// [onEdit]/[onDelete]를 주지 않으면 버튼을 그리지 않는다.
 class MyRatingTile extends StatelessWidget {
-  const MyRatingTile({super.key, required this.entry, required this.onTap});
+  const MyRatingTile({
+    super.key,
+    required this.entry,
+    required this.onTap,
+    this.onEdit,
+    this.onDelete,
+    this.selected,
+  });
 
   final RatingWithMovie entry;
   final VoidCallback onTap;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+
+  /// null이면 기본 모드(수정·삭제 버튼), true/false면 편집 모드의 체크 상태.
+  final bool? selected;
 
   @override
   Widget build(BuildContext context) {
@@ -90,10 +106,41 @@ class MyRatingTile extends StatelessWidget {
                   ],
                 ),
               ),
+              _trailing(),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _trailing() {
+    final title = entry.movie?.title ?? 'movieId ${entry.rating.movieId}';
+    if (selected case final isSelected?) {
+      return Checkbox(
+        value: isSelected,
+        activeColor: AppColors.violet,
+        semanticLabel: '$title 선택',
+        onChanged: (_) => onTap(),
+      );
+    }
+    if (onEdit == null && onDelete == null) return const SizedBox.shrink();
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (onEdit != null)
+          IconButton(
+            tooltip: '$title 평점 수정',
+            icon: const Icon(Icons.edit_outlined, color: AppColors.violet),
+            onPressed: onEdit,
+          ),
+        if (onDelete != null)
+          IconButton(
+            tooltip: '$title 평점 삭제',
+            icon: const Icon(Icons.delete_outline, color: AppColors.gray),
+            onPressed: onDelete,
+          ),
+      ],
     );
   }
 

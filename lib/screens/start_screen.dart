@@ -53,9 +53,9 @@ class StartScreen extends StatelessWidget {
               const Spacer(flex: 3),
               ElevatedButton(
                 onPressed: () {
-                  // go는 현재 Route 위치를 '/register'로 바꾼다.
-                  // push와 달리 시작 화면이 Stack에 남지 않으므로 뒤로 가기로 돌아올 수 없다.
-                  context.go('/register');
+                  // 7주차: push로 열어 회원가입 화면에서 뒤로 가면 시작 화면으로 돌아온다.
+                  // 회원가입 제출 중에는 PopScope가 이 뒤로가기를 막는다.
+                  context.push('/register');
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: colorScheme.primary,
