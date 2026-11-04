@@ -5,7 +5,7 @@
 | 항목 | 내용 |
 | --- | --- |
 | 브랜치 | `feature/week-7` (feature/week-6에서 분기) |
-| Pull Request | (생성 후 기입) |
+| Pull Request | https://github.com/seoktae-lee/movielog/pull/9 |
 | 사용 API | 워크북 Swagger **v6** — 회원가입 POST, 닉네임/이메일 확인, 평점 조회·등록·수정·삭제 + TMDB 상세 |
 | 본인 테스트 계정 | 닉네임 `태이w7ecyy` / 이메일 `taei.w7b.ecyy@movielog.dev` → memberId **8** (비밀번호 기록 안 함) |
 | 검증 | `flutter analyze` 0건 / `flutter test` 122개 통과 / 실제 서버 요청 기록 [week7-network-log.md](week7-network-log.md) |
@@ -90,4 +90,6 @@
 
 ## 학습 회고
 
-(함께 학습한 뒤 작성)
+- 알게 된 점: 저장 성공과 목록 재조회 성공은 다른 상태라 따로 다뤄야 한다. PATCH도 API 계약에 따라 전체 교체일 수 있다.
+- 어려웠던 점: API마다 성공 응답 형태(직접 배열, Wrapper, 204)가 달라 각각 맞춰 처리해야 했다.
+- 다음 주에 적용할 점: memberId는 인증이 아니므로 JWT 토큰으로 회원을 식별하도록 바꾼다.

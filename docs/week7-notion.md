@@ -9,7 +9,7 @@
 | --- | --- |
 | 이름 / 닉네임 | 이석태 / 태이 |
 | GitHub 저장소 | https://github.com/seoktae-lee/movielog |
-| Pull Request | (PR 생성 후 기입) |
+| Pull Request | https://github.com/seoktae-lee/movielog/pull/9 |
 | 브랜치 | `feature/week-7` |
 | 사용 API | 워크북 Swagger v6 (`https://workbook.devnoco.com/v6`) + TMDB 상세 |
 | 본인 테스트 계정 | 닉네임 `태이w7ecyy` / 이메일 `taei.w7b.ecyy@movielog.dev` → memberId 8 (비밀번호 미기록) |
@@ -52,14 +52,14 @@ $ flutter test
 
 ```
 POST /v6/members → 409   (다른 사용자가 같은 이메일로 먼저 가입)
-POST /v6/members → 400   (비밀번호 규칙 위반)
+POST /v6/members → 400   (앱 검사가 먼저 막으므로, 요청 body의 비밀번호만 약한 값으로 바꿔 재현)
 POST /v6/members → 201   memberId 8
 POST /v6/members/8/ratings → 201  {movieId: 969681, score: 4, comment}
 POST /v6/members/8/ratings → 409  (같은 영화 재등록)
 PATCH /v6/members/8/ratings/11 → 200 → GET /v6/members/8/ratings → 200
-PATCH /v6/members/8/ratings/9 → 200 → GET (네트워크 차단) → GET 재시도 200
-PATCH /v6/members/8/ratings/1 → 403  → GET 재조회
-PATCH /v6/members/8/ratings/7 → 404  → GET 재조회
+PATCH /v6/members/8/ratings/9 → 200 → GET (캡처 도구로 차단) → GET 재시도 200
+PATCH /v6/members/8/ratings/1 → 403  → GET 재조회  (화면엔 내 평점만 있어, 요청 경로의 ratingId만 1로 바꿔 재현)
+PATCH /v6/members/8/ratings/7 → 404  → GET 재조회  (스크립트로 같은 평점을 먼저 삭제해 재현)
 DELETE /v6/members/8/ratings/6 → 204 → GET → 200
 ```
 
@@ -250,7 +250,7 @@ Future<void> _refreshAfterWrite() async {
 ## 📮 제출 양식
 
 ```
-PR 링크: (PR 생성 후 기입)
+PR 링크: https://github.com/seoktae-lee/movielog/pull/9
 생성한 본인 테스트 계정(비밀번호 제외): 닉네임 태이w7ecyy / 이메일 taei.w7b.ecyy@movielog.dev → memberId 8
 닉네임/이메일 확인과 입력 변경 무효화: week7-01(둘 다 통과) → week7-03(이메일 변경 → 이전 결과·409 오류 무효화)
 회원가입 결과와 최종 409: week7-02(POST 409 "이미 사용 중인 이메일입니다.") → week7-06(201, memberId 8)
@@ -259,9 +259,11 @@ PR 링크: (PR 생성 후 기입)
 오류 code 처리 증거: 400 비밀번호(week7-04), 403(week7-20), 404(week7-21, 이후 재조회), 409 등록(week7-13)·가입(week7-02)
 저장 성공/재조회 실패 분리 증거: PATCH 200 → GET 네트워크 차단 → "저장은 완료됐지만…"(week7-17) → 조회만 재시도 GET 200(week7-18), 영상 week7-gif-refresh-retry
 트러블슈팅: 위 6건
-미검증 항목: 실기기(iOS 시뮬레이터) 스와이프 백 제스처는 Widget 테스트(PopScope.canPop=false)로만 확인. 403은 화면에 남의 평점이 없어 요청 경로의 ratingId를 바꿔 재현.
+미검증 항목: 캡처·영상은 Flutter 웹(디버그) + 헤드리스 Chrome으로 실제 v6 서버를 상대로 만들었고, iOS 시뮬레이터·실기기에서는 실행하지 않음. 스와이프 백 제스처는 Widget 테스트(PopScope.canPop=false)로만 확인. 403은 화면에 남의 평점이 없어 요청 경로의 ratingId를 바꿔 재현.
 ```
 
 ## 💭 7주차 회고
 
-(함께 학습한 뒤 채운다 — 무엇을 알게 됐는지 / 어려웠던 점 / 다음 주에 적용할 점)
+- 알게 된 점: 저장 성공과 목록 재조회 성공은 다른 상태라 따로 다뤄야 한다. PATCH도 API 계약에 따라 전체 교체일 수 있다.
+- 어려웠던 점: API마다 성공 응답 형태(직접 배열, Wrapper, 204)가 달라 각각 맞춰 처리해야 했다.
+- 다음 주에 적용할 점: memberId는 인증이 아니므로 JWT 토큰으로 회원을 식별하도록 바꾼다.
