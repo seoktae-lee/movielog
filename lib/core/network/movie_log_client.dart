@@ -9,7 +9,7 @@ import 'tmdb_logging_interceptor.dart';
 /// (TMDB는 Bearer Token, 자체 API는 7주차부터 로그인 JWT)
 /// 하나로 합치면 TMDB Token이 우리 서버로 새어 나간다.
 ///
-/// 6주차는 v5 명세를 쓴다. 경로 앞에 `/v5`를 붙이는 일은 Service가 한다.
+/// 7주차는 v6 명세를 쓴다. 경로 앞에 `/v6`를 붙이는 일은 Service가 한다.
 Dio createMovieLogClient() {
   final dio = Dio(
     BaseOptions(

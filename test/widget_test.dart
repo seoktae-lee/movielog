@@ -11,6 +11,7 @@ import 'package:movielog/screens/profile_screen.dart';
 import 'package:movielog/screens/sign_up_screen.dart';
 import 'package:movielog/screens/start_screen.dart';
 import 'package:movielog/theme/app_theme.dart';
+import 'package:movielog/view_models/learning_member_session.dart';
 import 'package:movielog/view_models/sign_up_view_model.dart';
 import 'package:movielog/widgets/movielog_button.dart';
 import 'package:movielog/widgets/stat_item.dart';
@@ -49,11 +50,14 @@ void main() {
 
   group('회원가입 화면', () {
     // 회원가입 화면은 중복 확인을 위해 SignUpViewModel을 읽는다.
-    late FakeMemberCheckService checkService;
-    setUp(() => checkService = FakeMemberCheckService());
+    late FakeSignUpService checkService;
+    setUp(() => checkService = FakeSignUpService());
 
-    Widget withViewModel(Widget child) => ChangeNotifierProvider(
-      create: (_) => SignUpViewModel(checkService),
+    Widget withViewModel(Widget child) => MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => LearningMemberSession()),
+        ChangeNotifierProvider(create: (_) => SignUpViewModel(checkService)),
+      ],
       child: child,
     );
 
@@ -181,28 +185,143 @@ void main() {
       expect(checkService.emailCalls, isEmpty);
     });
 
-    testWidgets('두 칸 모두 확인되고 입력이 유효하면 홈으로 이동한다', (tester) async {
-      // _submit()이 context.go('/home')을 호출하므로 GoRouter 안에서 띄운다.
+    late LearningMemberSession session;
+
+    /// _submit()이 context.go('/movies')를 호출하므로 GoRouter 안에서 띄운다.
+    Future<void> pumpSignUpInRouter(WidgetTester tester) async {
+      session = LearningMemberSession();
       final router = GoRouter(
         initialLocation: '/register',
         routes: [
           GoRoute(
             path: '/register',
-            builder: (context, state) => withViewModel(const SignUpScreen()),
+            builder: (context, state) => ChangeNotifierProvider(
+              create: (_) => SignUpViewModel(checkService),
+              child: const SignUpScreen(),
+            ),
           ),
           GoRoute(
-            path: '/home',
-            builder: (context, state) => const Scaffold(body: Text('테스트용 홈')),
+            path: '/movies',
+            builder: (context, state) =>
+                const Scaffold(body: Text('테스트용 영화 목록')),
           ),
         ],
       );
       await tester.pumpWidget(
-        MaterialApp.router(theme: AppTheme.light, routerConfig: router),
+        ChangeNotifierProvider.value(
+          value: session,
+          child: MaterialApp.router(
+            theme: AppTheme.light,
+            routerConfig: router,
+          ),
+        ),
       );
+    }
+
+    Future<void> fillValidForm(WidgetTester tester) async {
+      await tester.enterText(nicknameField(), '태이');
+      await tester.enterText(emailField(), 'a@b.com');
+      await tester.enterText(find.byType(TextFormField).at(2), 'Pass1234!');
+      await tester.tap(find.byType(CheckboxListTile));
+      await tester.pump();
+      await tester.tap(checkButton(0));
+      await tester.tap(checkButton(1));
+      await tester.pump();
+    }
+
+    testWidgets('비밀번호는 서버와 같은 형식 규칙으로 먼저 검사한다', (tester) async {
+      await pumpSignUpInRouter(tester);
+      await fillValidForm(tester);
+      await tester.enterText(find.byType(TextFormField).at(2), 'password1');
+      await tester.pump();
+      await tester.tap(submitButton());
+      await tester.pump();
+
+      expect(find.textContaining('각각 하나 이상'), findsOneWidget);
+      expect(checkService.signUpCalls, isEmpty);
+    });
+
+    testWidgets('서버가 비밀번호를 400으로 거부하면 비밀번호 칸 errorText로 보여 준다', (tester) async {
+      checkService.signUpError = fakeMovieLogError(
+        statusCode: 400,
+        code: 'COMMON400',
+        message: '비밀번호는 대문자/소문자/숫자/특수문자를 포함한 8자 이상이어야 합니다.',
+      );
+      await pumpSignUpInRouter(tester);
+      await fillValidForm(tester);
+      await tester.tap(submitButton());
+      await tester.pumpAndSettle();
+
+      final passwordField = find.byType(TextFormField).at(2);
+      expect(errorTextOf(tester, passwordField), contains('비밀번호는'));
+      expect(find.byType(SnackBar), findsNothing);
+      expect(find.byType(SignUpScreen), findsOneWidget);
+    });
+
+    testWidgets('최종 가입 409는 Snackbar로 보여 주고 화면에 남는다', (tester) async {
+      checkService.signUpError = fakeMovieLogError(
+        statusCode: 409,
+        code: 'COMMON409',
+        message: '이미 사용 중인 닉네임입니다.',
+      );
+      await pumpSignUpInRouter(tester);
+      await fillValidForm(tester);
+      await tester.tap(submitButton());
+      await tester.pump();
+      await tester.pump();
+
+      // Snackbar + 해당 칸(닉네임)이 다시 duplicated 에러로 바뀐다.
+      expect(
+        find.descendant(
+          of: find.byType(SnackBar),
+          matching: find.text('이미 사용 중인 닉네임입니다.'),
+        ),
+        findsOneWidget,
+      );
+      expect(errorTextOf(tester, nicknameField()), '이미 사용 중인 닉네임입니다.');
+      expect(isEnabled(tester, submitButton()), isFalse);
+      expect(find.byType(SignUpScreen), findsOneWidget);
+      expect(session.memberId, isNull);
+    });
+
+    testWidgets('제출 중에는 버튼이 로딩이고 뒤로 갈 수 없다 (Challenge)', (tester) async {
+      await pumpSignUpInRouter(tester);
+      await fillValidForm(tester);
+      // 중복 확인은 통과시키고, 가입 POST만 붙잡는다.
+      checkService.gate = Completer<void>();
+
+      await tester.tap(submitButton());
+      await tester.pump();
+      // 로딩 중에는 label이 사라지므로 마지막 버튼(가입하기)을 순서로 찾는다.
+      expect(
+        button(tester, find.byType(MovieLogButton).last).isLoading,
+        isTrue,
+      );
+      expect(
+        tester
+            .widget<PopScope>(
+              find
+                  .descendant(
+                    of: find.byType(SignUpScreen),
+                    matching: find.byType(PopScope),
+                  )
+                  .first,
+            )
+            .canPop,
+        isFalse,
+      );
+
+      checkService.gate!.complete();
+      await tester.pumpAndSettle();
+      expect(session.memberId, 42);
+    });
+
+    testWidgets('두 칸 모두 확인되고 입력이 유효하면 가입 POST 후 /movies로 이동한다', (tester) async {
+      await pumpSignUpInRouter(tester);
 
       await tester.enterText(nicknameField(), '태이');
       await tester.enterText(emailField(), 'a@b.com');
-      await tester.enterText(find.byType(TextFormField).at(2), '12345678');
+      await tester.enterText(find.byType(TextFormField).at(2), 'Pass1234!');
       await tester.tap(find.byType(CheckboxListTile));
       await tester.pump();
       // 중복 확인 전에는 가입하기가 비활성이다.
@@ -215,11 +334,15 @@ void main() {
 
       await tester.tap(submitButton());
       await tester.pump();
-      expect(find.text('태이님, 가입을 환영합니다!'), findsOneWidget);
+      await tester.pump();
+      expect(find.text('태이님, 가입을 환영합니다! (memberId 42)'), findsOneWidget);
+      // 가입 결과 memberId가 학습용 세션에 저장된다.
+      expect(session.memberId, 42);
+      expect(checkService.signUpCalls.single.nickname, '태이');
 
-      // go로 이동했으므로 회원가입 화면은 사라지고 홈만 남는다.
+      // go로 이동했으므로 회원가입 화면은 사라지고 영화 목록만 남는다.
       await tester.pumpAndSettle();
-      expect(find.text('테스트용 홈'), findsOneWidget);
+      expect(find.text('테스트용 영화 목록'), findsOneWidget);
       expect(find.byType(SignUpScreen), findsNothing);
     });
   });

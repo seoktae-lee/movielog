@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../data/models/create_member_request.dart';
 import '../theme/app_colors.dart';
+import '../view_models/learning_member_session.dart';
 import '../view_models/sign_up_view_model.dart';
 import '../widgets/common_app_bar.dart';
 import '../widgets/movie_log_text_form_field.dart';
@@ -12,8 +14,8 @@ import '../widgets/terms_checkbox.dart';
 /// 회원가입 화면.
 ///
 /// 2주차: Form과 State로 입력·형식 오류·완료 상태를 다룬다.
-/// 6주차: 닉네임·이메일이 이미 쓰이고 있는지 워크북 서버(v5)에 묻는다. ([SignUpViewModel])
-/// v5에는 회원가입 POST가 없어서 가입 요청은 보내지 않는다.
+/// 6주차: 닉네임·이메일이 이미 쓰이고 있는지 워크북 서버에 묻는다. ([SignUpViewModel])
+/// 7주차: 유효한 입력을 `POST /v6/members`로 실제 전송하고, 결과 memberId를 [LearningMemberSession]에 저장한다.
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
 
@@ -83,13 +85,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return null;
   }
 
+  /// 서버 규칙과 같다: 8자 이상 + 소문자·대문자·숫자·특수문자(!@#$%^&*) 각각 하나 이상.
+  /// 클라이언트 검증은 빠른 안내용이다. 서버 400을 대신하지 않는다.
+  static final _passwordPattern = RegExp(
+    r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*]).{8,}$',
+  );
+
   String? _validatePassword(String? value) {
     final password = value ?? '';
     if (password.isEmpty) {
       return '비밀번호를 입력해주세요.';
     }
+    // 비밀번호는 trim하지 않는다. 대신 앞뒤 공백을 허용하지 않는다고 여기서 분명히 알려 준다.
+    if (password != password.trim()) {
+      return '비밀번호 앞뒤에는 공백을 넣을 수 없습니다.';
+    }
     if (password.length < 8) {
       return '비밀번호는 8자 이상 입력해주세요.';
+    }
+    if (!_passwordPattern.hasMatch(password)) {
+      return '대문자·소문자·숫자·특수문자(!@#\$%^&*)를 각각 하나 이상 넣어 주세요.';
     }
     return null;
   }
@@ -109,26 +124,51 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   /// 가입하기 버튼을 눌렀을 때 실행된다.
   ///
-  /// v5에는 회원가입 API가 없으므로 서버에 보내지 않는다.
-  /// 형식이 모두 맞고 두 칸의 중복 확인이 통과했으면 홈으로 이동한다.
-  void _submit() {
+  /// 로컬 Form 검증 + 두 칸 중복 확인 통과 + 제출 중 아님 → `POST /v6/members`.
+  /// 성공하면 memberId를 학습용 세션에 저장하고 /movies로, 실패하면 Snackbar(또는 비밀번호 칸 오류)로 안내한다.
+  Future<void> _submit() async {
     // validate()는 모든 TextFormField의 validator를 실행하고,
     // 하나라도 문자열을 반환하면 false를 돌려주며 해당 필드에 오류 메시지를 표시한다.
     final isValid = _formKey.currentState?.validate() ?? false;
     if (!isValid) return;
-    if (!context.read<SignUpViewModel>().isAllAvailable) return;
+    final viewModel = context.read<SignUpViewModel>();
+    if (!viewModel.isAllAvailable || viewModel.isSubmitting) return;
 
     FocusScope.of(context).unfocus();
-    final nickname = _nicknameController.text.trim();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$nickname님, 가입을 환영합니다!'),
-        behavior: SnackBarBehavior.floating,
+    await viewModel.submit(
+      CreateMemberRequest(
+        email: _emailController.text,
+        password: _passwordController.text,
+        nickname: _nicknameController.text,
       ),
     );
+    // await 사이에 화면이 사라졌으면 결과를 반영하지 않는다.
+    if (!mounted) return;
 
-    // 가입이 끝나면 홈으로. push가 아니라 go라서 회원가입 화면이 Stack에 남지 않는다.
-    context.go('/home');
+    final memberId = viewModel.createdMemberId;
+    if (viewModel.submitStatus == SubmitStatus.success && memberId != null) {
+      context.read<LearningMemberSession>().setMemberId(memberId);
+      final nickname = _nicknameController.text.trim();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$nickname님, 가입을 환영합니다! (memberId $memberId)'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      // go라서 회원가입 화면이 Stack에 남지 않는다.
+      context.go('/movies');
+      return;
+    }
+
+    // 409·그 밖의 400·통신 실패는 어느 칸에도 붙지 않으므로 Snackbar로 한 번만 보여 준다.
+    // 비밀번호 400은 passwordErrorText로 비밀번호 칸에 이미 표시된다.
+    if (viewModel.takeSnackbarMessage() case final message?) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+        );
+    }
   }
 
   @override
@@ -136,19 +176,28 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final viewModel = context.watch<SignUpViewModel>();
 
     // 버튼을 켤지 정하는 느슨한 조건. 최종 검증은 _submit()의 validate()가 담당한다.
+    final isSubmitting = viewModel.isSubmitting;
     final canSubmit =
         _nicknameController.text.trim().length >= 2 &&
         _emailController.text.contains('@') &&
         _passwordController.text.length >= 8 &&
         _agreedToTerms &&
-        viewModel.isAllAvailable;
+        viewModel.isAllAvailable &&
+        !isSubmitting;
 
-    // 시작 화면에서 go로 왔으므로 Stack에 이전 화면이 없지만,
-    // Android 뒤로 가기로 앱이 닫히는 것까지 막기 위해 PopScope로 감싼다.
+    // 시작 화면에서 push로 들어온다. 제출 중에는 뒤로가기·스와이프 백을 막고,
+    // 성공이든 실패든 제출이 끝나면 다시 나갈 수 있다. (Challenge)
     return PopScope(
-      canPop: false,
+      canPop: !isSubmitting,
       child: Scaffold(
-        appBar: const CommonAppBar(title: '회원가입'),
+        appBar: CommonAppBar(
+          title: '회원가입',
+          // 제출 중에는 AppBar 뒤로가기 버튼도 막는다.
+          // maybePop은 PopScope(canPop)를 존중한다.
+          onBack: isSubmitting || !Navigator.canPop(context)
+              ? null
+              : () => Navigator.maybePop(context),
+        ),
         body: SafeArea(
           // MediaQuery(창 전체)가 아니라 부모가 실제로 준 너비로 분기한다.
           child: LayoutBuilder(
@@ -180,6 +229,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               hintText: '2~12자 입력',
                               prefixIcon: Icons.person_outline,
                               validator: _validateNickname,
+                              enabled: !isSubmitting,
                               // 체크 표시는 입력창 안에만 둔다. 버튼과 겹치지 않는다.
                               suffixIcon: _checkIcon(
                                 viewModel.nicknameCheckStatus,
@@ -206,7 +256,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               isLoading:
                                   viewModel.nicknameCheckStatus ==
                                   CheckStatus.checking,
-                              onPressed: viewModel.canCheckNickname
+                              onPressed:
+                                  viewModel.canCheckNickname && !isSubmitting
                                   ? _checkNickname
                                   : null,
                             ),
@@ -222,6 +273,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               prefixIcon: Icons.mail_outline,
                               keyboardType: TextInputType.emailAddress,
                               validator: _validateEmail,
+                              enabled: !isSubmitting,
                               suffixIcon: _checkIcon(
                                 viewModel.emailCheckStatus,
                               ),
@@ -243,7 +295,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               isLoading:
                                   viewModel.emailCheckStatus ==
                                   CheckStatus.checking,
-                              onPressed: viewModel.canCheckEmail
+                              onPressed:
+                                  viewModel.canCheckEmail && !isSubmitting
                                   ? _checkEmail
                                   : null,
                             ),
@@ -253,7 +306,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             controller: _passwordController,
                             focusNode: _passwordFocusNode,
                             labelText: '비밀번호',
-                            hintText: '8자 이상 입력',
+                            hintText: '대·소문자·숫자·특수문자 포함 8자 이상',
                             prefixIcon: Icons.lock_outline,
                             obscureText: _obscurePassword,
                             suffixIcon: IconButton(
@@ -272,7 +325,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             // 마지막 필드이므로 완료 버튼으로 키보드를 닫는다.
                             textInputAction: TextInputAction.done,
                             validator: _validatePassword,
-                            onChanged: (_) => setState(() {}),
+                            enabled: !isSubmitting,
+                            // 로컬 validator가 통과해도 서버가 거부한 값이면 계속 에러로 보인다.
+                            errorText: viewModel.passwordErrorText,
+                            onChanged: (_) {
+                              viewModel.onPasswordChanged();
+                              setState(() {});
+                            },
                             onFieldSubmitted: (_) =>
                                 FocusScope.of(context).unfocus(),
                           ),
@@ -291,6 +350,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           MovieLogButton(
                             label: '가입하기',
                             width: double.infinity,
+                            isLoading: isSubmitting,
                             onPressed: canSubmit ? _submit : null,
                           ),
                         ],

@@ -1,18 +1,19 @@
-// 회원가입 ViewModel: 중복 확인 상태 전환과 무효화 규칙을 확인한다.
+// 회원가입 ViewModel: 중복 확인 상태 전환·무효화 규칙과 가입 제출(7주차)을 확인한다.
 
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:movielog/data/models/create_member_request.dart';
 import 'package:movielog/view_models/sign_up_view_model.dart';
 
 import 'support/fake_movielog_services.dart';
 
 void main() {
-  late FakeMemberCheckService service;
+  late FakeSignUpService service;
   late SignUpViewModel viewModel;
 
   setUp(() {
-    service = FakeMemberCheckService();
+    service = FakeSignUpService();
     viewModel = SignUpViewModel(service);
   });
 
@@ -118,5 +119,118 @@ void main() {
     expect(viewModel.nicknameCheckStatus, CheckStatus.duplicated);
     expect(viewModel.emailCheckStatus, CheckStatus.available);
     expect(viewModel.isAllAvailable, isFalse);
+  });
+
+  group('가입 제출 (7주차)', () {
+    const request = CreateMemberRequest(
+      email: 'new@umc.com',
+      password: 'Pass1234!',
+      nickname: '태이',
+    );
+
+    test('idle → submitting → success, result.memberId를 저장한다', () async {
+      final seen = <SubmitStatus>[];
+      viewModel.addListener(() => seen.add(viewModel.submitStatus));
+
+      await viewModel.submit(request);
+
+      expect(seen, [SubmitStatus.submitting, SubmitStatus.success]);
+      expect(viewModel.createdMemberId, 42);
+      expect(service.signUpCalls, hasLength(1));
+    });
+
+    test('제출 중 다시 눌러도 요청은 한 번만 간다', () async {
+      service.gate = Completer<void>();
+      final pending = viewModel.submit(request);
+      expect(viewModel.isSubmitting, isTrue);
+
+      await viewModel.submit(request);
+      service.gate!.complete();
+      await pending;
+
+      expect(service.signUpCalls, hasLength(1));
+    });
+
+    test('비밀번호 400은 passwordErrorText로, 비밀번호를 고치면 지워진다', () async {
+      service.signUpError = fakeMovieLogError(
+        statusCode: 400,
+        code: 'COMMON400',
+        message: '비밀번호는 대문자/소문자/숫자/특수문자를 포함한 8자 이상이어야 합니다.',
+      );
+
+      await viewModel.submit(request);
+
+      expect(viewModel.submitStatus, SubmitStatus.error);
+      expect(viewModel.passwordErrorText, contains('비밀번호는'));
+      expect(viewModel.snackbarMessage, isNull);
+
+      viewModel.onPasswordChanged();
+      expect(viewModel.passwordErrorText, isNull);
+    });
+
+    test('비밀번호가 아닌 400과 409는 snackbarMessage로 (한 번만 꺼낸다)', () async {
+      service.signUpError = fakeMovieLogError(
+        statusCode: 400,
+        code: 'COMMON400',
+        message: '닉네임은 12자 이하여야 합니다.',
+      );
+      await viewModel.submit(request);
+      expect(viewModel.passwordErrorText, isNull);
+      expect(viewModel.takeSnackbarMessage(), '닉네임은 12자 이하여야 합니다.');
+      expect(viewModel.takeSnackbarMessage(), isNull);
+
+      service.signUpError = fakeMovieLogError(
+        statusCode: 409,
+        code: 'COMMON409',
+        message: '이미 사용 중인 이메일입니다.',
+      );
+      await viewModel.submit(request);
+      expect(viewModel.submitStatus, SubmitStatus.error);
+      expect(viewModel.snackbarMessage, '이미 사용 중인 이메일입니다.');
+      expect(viewModel.createdMemberId, isNull);
+    });
+
+    test('최종 409 이메일 중복이면 이메일 칸의 확인 결과도 duplicated로 되돌린다', () async {
+      viewModel.onEmailChanged('new@umc.com');
+      await viewModel.checkEmail('new@umc.com');
+      viewModel.onNicknameChanged('태이');
+      await viewModel.checkNickname('태이');
+      expect(viewModel.isAllAvailable, isTrue);
+
+      service.signUpError = fakeMovieLogError(
+        statusCode: 409,
+        code: 'COMMON409',
+        message: '이미 사용 중인 이메일입니다.',
+      );
+      await viewModel.submit(request);
+
+      expect(viewModel.emailCheckStatus, CheckStatus.duplicated);
+      expect(viewModel.emailErrorText, '이미 가입된 이메일입니다.');
+      expect(viewModel.nicknameCheckStatus, CheckStatus.available);
+      expect(viewModel.isAllAvailable, isFalse);
+    });
+
+    test('201인데 memberId가 없으면 가입 완료로 표시하지 않는다', () async {
+      service.createdMemberId = null;
+      await viewModel.submit(request);
+
+      expect(viewModel.submitStatus, SubmitStatus.error);
+      expect(viewModel.createdMemberId, isNull);
+      expect(viewModel.snackbarMessage, contains('가입 결과를 확인하지 못했습니다'));
+    });
+
+    test('409 뒤 이메일을 바꾸면 이전 서버 오류도 함께 무효화된다', () async {
+      service.signUpError = fakeMovieLogError(
+        statusCode: 409,
+        code: 'COMMON409',
+        message: '이미 사용 중인 이메일입니다.',
+      );
+      await viewModel.submit(request);
+      viewModel.onEmailChanged('other@umc.com');
+
+      expect(viewModel.submitStatus, SubmitStatus.idle);
+      expect(viewModel.snackbarMessage, isNull);
+      expect(viewModel.emailCheckStatus, CheckStatus.idle);
+    });
   });
 }

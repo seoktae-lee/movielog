@@ -1,66 +1,74 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
+import '../data/models/rating_request.dart';
 import '../data/models/tmdb_movie_dto.dart';
-import '../data/services/tmdb_movie_service.dart';
-import 'tmdb_error_message.dart';
+import '../data/services/rating_api_service.dart';
+import 'submit_status.dart';
 
-enum MovieDetailLoadStatus { idle, loading, success, notFound, error }
+export 'submit_status.dart';
 
-/// 영화 상세 화면 전용 ViewModel.
+/// 영화 상세 화면 전용 ViewModel. 현재 영화 DTO와 **평점 등록** 상태를 관리한다.
 ///
-/// 목록·홈에서 넘어오면 이미 받은 DTO([initialMovie])를 그대로 쓰고,
-/// URL로 바로 들어와 DTO가 없으면 [movieId]로 TMDB 상세 API를 호출한다.
+/// TMDB 조회는 [MovieDetailLoader]가 끝낸 뒤 이 ViewModel을 만든다.
+/// 상세 화면은 등록만 하고, 조회·수정·삭제는 마이페이지의 "내가 등록한 평점"(MyRatingsViewModel)이 맡는다.
 class MovieDetailViewModel extends ChangeNotifier {
-  MovieDetailViewModel(
-    this._service, {
-    required this.movieId,
-    TmdbMovieDto? initialMovie,
-  }) : movie = initialMovie;
+  MovieDetailViewModel(this._ratingService, this.memberId, this.movie);
 
-  final TmdbMovieService _service;
+  final RatingApiService _ratingService;
 
-  /// Path Parameter(`/movies/:movieId`)로 받은 TMDB id. 숫자가 아니면 null.
-  final int? movieId;
+  /// 학습용 현재 회원(LearningMemberSession). 로그인 인증은 아니다. 가입 전이면 null.
+  final int? memberId;
 
-  TmdbMovieDto? movie;
-  MovieDetailLoadStatus status = MovieDetailLoadStatus.idle;
-  String? message;
+  /// 평점 요청의 movieId는 목록 index가 아니라 이 DTO의 TMDB id다.
+  final TmdbMovieDto movie;
+
+  SubmitStatus submitStatus = SubmitStatus.idle;
+  String? submitMessage;
+
+  /// 이번 화면에서 등록에 성공한 점수. "내 평점" 영역에 보여 준다. (서버 목록은 마이페이지에서 다시 조회)
+  int? registeredScore;
 
   bool _disposed = false;
 
-  Future<void> load() async {
-    final id = movieId;
+  bool get canRegister => memberId != null;
+
+  Future<void> createRating({required int score, String? comment}) async {
+    final id = memberId;
     if (id == null) {
-      status = MovieDetailLoadStatus.notFound;
+      submitStatus = SubmitStatus.error;
+      submitMessage = '먼저 회원가입을 완료해 주세요.';
       notifyListeners();
       return;
     }
-
-    // 넘겨받은 DTO의 id가 URL의 id와 같을 때만 믿고 쓴다.
-    if (movie?.id == id) {
-      status = MovieDetailLoadStatus.success;
-      notifyListeners();
-      return;
-    }
-
-    status = MovieDetailLoadStatus.loading;
-    message = null;
+    if (submitStatus == SubmitStatus.submitting) return;
+    submitStatus = SubmitStatus.submitting;
+    submitMessage = null;
     notifyListeners();
 
     try {
-      movie = await _service.fetchMovieDetail(id);
-      status = MovieDetailLoadStatus.success;
+      await _ratingService.createRating(
+        memberId: id,
+        request: CreateRatingRequest(
+          movieId: movie.id,
+          score: score,
+          comment: comment,
+        ),
+      );
+      // 화면을 떠난 뒤 도착한 결과는 반영하지 않는다.
+      if (_disposed) return;
+      submitStatus = SubmitStatus.success;
+      registeredScore = score;
     } on DioException catch (error) {
-      status = error.response?.statusCode == 404
-          ? MovieDetailLoadStatus.notFound
-          : MovieDetailLoadStatus.error;
-      message = tmdbErrorMessage(error, fallback: '영화 정보를 불러오지 못했어요.');
-    } catch (error) {
-      status = MovieDetailLoadStatus.error;
-      message = '영화 정보를 불러오지 못했어요.';
+      if (_disposed) return;
+      submitStatus = SubmitStatus.error;
+      // 400(별점 범위)·404(없는 유저)·409(이미 등록) — 서버 message를 그대로 쓴다.
+      submitMessage = writeErrorMessage(error);
+    } on StateError catch (error) {
+      if (_disposed) return;
+      submitStatus = SubmitStatus.error;
+      submitMessage = error.message;
     }
-
     if (!_disposed) notifyListeners();
   }
 

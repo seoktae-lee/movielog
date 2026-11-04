@@ -1,4 +1,4 @@
-/// `GET /v5/members/{memberId}/ratings` 응답 배열의 한 항목.
+/// `GET /v6/members/{memberId}/ratings` 응답 배열의 한 항목.
 ///
 /// 영화 정보는 없고 TMDB 영화 id(`movieId`)만 있다.
 /// 제목·포스터는 이 id로 TMDB에서 따로 가져온다. ([RatingWithMovie])

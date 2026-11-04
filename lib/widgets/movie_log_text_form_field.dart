@@ -23,6 +23,7 @@ class MovieLogTextFormField extends StatelessWidget {
     this.helperText,
     this.helperColor,
     this.errorText,
+    this.enabled = true,
   });
 
   final TextEditingController controller;
@@ -50,12 +51,16 @@ class MovieLogTextFormField extends StatelessWidget {
   /// 서버가 알려 준 오류처럼 validator 밖에서 정해진 오류 문구.
   final String? errorText;
 
+  /// 제출 중에는 false로 받아 입력을 잠근다.
+  final bool enabled;
+
   @override
   Widget build(BuildContext context) {
     return TextFormField(
       key: fieldKey,
       controller: controller,
       focusNode: focusNode,
+      enabled: enabled,
       decoration: InputDecoration(
         labelText: labelText,
         hintText: hintText,
