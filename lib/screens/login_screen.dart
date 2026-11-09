@@ -56,6 +56,8 @@ class _LoginScreenState extends State<LoginScreen> {
     if (email != null && email != oldWidget.initialEmail) {
       _email.text = email;
       _password.clear();
+      // 가입 전에 남은 로그인 실패 문구는 새 계정과 상관없다. build 중 notify를 피해 프레임 뒤에 지운다.
+      WidgetsBinding.instance.addPostFrameCallback((_) => _auth.clearMessage());
     }
   }
 

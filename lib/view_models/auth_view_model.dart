@@ -243,6 +243,14 @@ class AuthViewModel extends ChangeNotifier {
     sessionExpired = false;
   }
 
+  /// 로그인 화면의 이전 실패 문구를 지운다. (회원가입을 마치고 돌아왔을 때 등)
+  /// 로그인 요청 중이거나 저장소 정리 중에는 그 문구가 의미 있으므로 건드리지 않는다.
+  void clearMessage() {
+    if (_disposed || message == null || status != AuthStatus.signedOut) return;
+    message = null;
+    _notify();
+  }
+
   Future<void> _clearCurrentSession({required bool expired}) async {
     if (_disposed || storageCleanupInProgress) return;
     final version = ++_sessionVersion;

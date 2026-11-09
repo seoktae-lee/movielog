@@ -60,7 +60,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (!mounted) return;
 
     if (success) {
-      _leaving = true;
       messenger
         ..hideCurrentSnackBar()
         ..showSnackBar(
@@ -69,7 +68,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             behavior: SnackBarBehavior.floating,
           ),
         );
-      router.pop(); // 마이페이지는 이미 새 닉네임을 구독하고 있다.
+      _leave(router); // 마이페이지는 이미 새 닉네임을 구독하고 있다.
     } else if (viewModel.message case final message?) {
       messenger
         ..hideCurrentSnackBar()
@@ -99,8 +98,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ),
     );
     if (leave != true || !mounted) return;
-    _leaving = true;
-    context.pop();
+    _leave(GoRouter.of(context));
+  }
+
+  /// 확인 없이 나가도 되는 상태로 다시 그린 **뒤에** pop한다.
+  ///
+  /// PopScope는 마지막으로 그려진 canPop 값을 쓴다. 저장 직후에는 아직 "저장 중·변경 있음"으로
+  /// 그려진 상태라 바로 pop하면 막힌다(실기기에서 저장 성공 후 화면이 닫히지 않던 버그).
+  void _leave(GoRouter router) {
+    setState(() => _leaving = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) router.pop();
+    });
   }
 
   @override

@@ -719,4 +719,83 @@ void main() {
     expect(find.text('1개 선택'), findsOneWidget);
     expect(find.textContaining('1개 항목을 삭제하지 못했습니다.'), findsOneWidget);
   });
+
+  group('8주차 프로필 수정·로그아웃', () {
+    Future<void> openEdit(WidgetTester tester) async {
+      await pumpAppAt(tester, '/my');
+      await tester.scrollUntilVisible(
+        find.text('프로필 수정'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('프로필 수정'));
+      await tester.pumpAndSettle();
+      expect(currentLocation(tester), '/my/profile/edit');
+      expect(find.byType(NavigationBar), findsNothing);
+    }
+
+    testWidgets('저장에 성공하면 마이페이지로 돌아가고 새 닉네임이 바로 보인다', (tester) async {
+      await openEdit(tester);
+
+      await tester.enterText(find.byType(TextField).last, '새닉네임');
+      await tester.pump();
+      await tester.tap(find.text('저장'));
+      await tester.pumpAndSettle();
+
+      expect(memberService.updateCalls, ['새닉네임']);
+      expect(currentLocation(tester), '/my');
+      expect(find.text('새닉네임'), findsOneWidget);
+      expect(find.text('프로필을 수정했어요.'), findsOneWidget);
+    });
+
+    testWidgets('변경 후 뒤로가기는 확인 Dialog: 계속 수정이면 남고, 나가기면 돌아간다', (tester) async {
+      await openEdit(tester);
+      await tester.enterText(find.byType(TextField).last, '바꾸는중');
+      await tester.pump();
+
+      await tester.tap(find.byIcon(Icons.arrow_back));
+      await tester.pumpAndSettle();
+      expect(find.text('수정을 그만둘까요?'), findsOneWidget);
+
+      await tester.tap(find.text('계속 수정'));
+      await tester.pumpAndSettle();
+      expect(currentLocation(tester), '/my/profile/edit');
+
+      await tester.tap(find.byIcon(Icons.arrow_back));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('나가기'));
+      await tester.pumpAndSettle();
+      expect(currentLocation(tester), '/my');
+      expect(memberService.updateCalls, isEmpty);
+    });
+
+    testWidgets('MEMBER409_1이면 필드 아래 오류와 입력값 유지, 화면에 남는다', (tester) async {
+      memberService.updateError = fakeMovieLogError(
+        statusCode: 409,
+        code: 'MEMBER409_1',
+      );
+      await openEdit(tester);
+      await tester.enterText(find.byType(TextField).last, '영화광');
+      await tester.tap(find.text('저장'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('이미 사용 중인 닉네임이에요.'), findsOneWidget);
+      expect(find.text('영화광'), findsOneWidget);
+      expect(currentLocation(tester), '/my/profile/edit');
+    });
+
+    testWidgets('로그아웃하면 /login으로 가고 만료 Snackbar는 없으며, 보호 화면으로 갈 수 없다', (tester) async {
+      await pumpAppAt(tester, '/my');
+      await tester.tap(find.text('로그아웃'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(LoginScreen), findsOneWidget);
+      expect(storage.token, isNull);
+      expect(find.text('로그인이 만료됐어요. 다시 로그인해 주세요.'), findsNothing);
+
+      router(tester).go('/my');
+      await tester.pumpAndSettle();
+      expect(currentLocation(tester), '/login');
+    });
+  });
 }
