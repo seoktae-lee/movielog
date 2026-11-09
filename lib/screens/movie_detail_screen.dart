@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../data/models/tmdb_movie_dto.dart';
@@ -17,8 +16,8 @@ import 'movie_detail_loader.dart';
 /// 영화 상세 화면.
 ///
 /// 5주차: TMDB DTO로 포스터·제목·줄거리를 그린다. ([MovieDetailLoader]가 DTO를 준비한다)
-/// 7주차: 평점 Dialog에서 별점·코멘트를 받아 `POST /v6/members/{memberId}/ratings`로 **등록만** 한다.
-/// 등록 결과는 같은 화면 Snackbar로 알리고, 실제로 저장됐는지는 마이페이지 "내가 등록한 평점"에서 다시 조회한다.
+/// 7주차: 평점 Dialog에서 별점·코멘트를 받아 **등록만** 한다.
+/// 8주차: `POST /v7/ratings`(토큰 기반)로 바꿨다. 등록 result(Rating 객체)로 "내 평점" 영역을 바로 갱신한다.
 class MovieDetailScreen extends StatefulWidget {
   const MovieDetailScreen({super.key});
 
@@ -110,8 +109,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
             _Overview(overview: movie.overview),
             const SizedBox(height: 24),
             _MyRatingSection(
-              registeredScore: viewModel.registeredScore,
-              canRegister: viewModel.canRegister,
+              registeredScore: viewModel.myRating?.score,
               onRatePressed: _openRatingDialog,
             ),
           ],
@@ -190,16 +188,14 @@ class _MovieDetailHeader extends StatelessWidget {
 
 /// 내 평점 영역과 '평점 남기기' 버튼.
 ///
-/// 회원가입 결과의 memberId가 없으면 버튼을 비활성화하고 학습용 회원가입으로 안내한다.
+/// 이번 세션에서 이미 등록했으면 점수를 보여 주고, 같은 영화에 다시 POST하지 않는다. (서버도 RATING409_1로 막는다)
 class _MyRatingSection extends StatelessWidget {
   const _MyRatingSection({
     required this.registeredScore,
-    required this.canRegister,
     required this.onRatePressed,
   });
 
   final int? registeredScore;
-  final bool canRegister;
   final VoidCallback onRatePressed;
 
   @override
@@ -211,29 +207,16 @@ class _MyRatingSection extends StatelessWidget {
       children: [
         const Text('내 평점', style: AppTextStyles.titleMedium),
         const SizedBox(height: 8),
-        if (!canRegister)
-          const Text(
-            '평점을 남기려면 먼저 학습용 회원가입을 해 주세요.',
-            style: AppTextStyles.bodySmall,
-          )
-        else if (score != null)
+        if (score != null)
           MovieAverageRating(rating: score.toDouble(), itemSize: 20)
         else
           const Text('아직 평점을 남기지 않았어요', style: AppTextStyles.bodySmall),
         const SizedBox(height: 16),
-        if (canRegister)
-          MovieLogButton(
-            label: score == null ? '평점 남기기' : '등록 완료 · 수정은 마이페이지에서',
-            width: double.infinity,
-            // 이미 등록했으면 같은 영화에 다시 POST하지 않는다. (서버도 409로 막는다)
-            onPressed: score == null ? onRatePressed : null,
-          )
-        else
-          MovieLogButton(
-            label: '회원가입하러 가기',
-            width: double.infinity,
-            onPressed: () => context.push('/register'),
-          ),
+        MovieLogButton(
+          label: score == null ? '평점 남기기' : '등록 완료 · 수정은 마이페이지에서',
+          width: double.infinity,
+          onPressed: score == null ? onRatePressed : null,
+        ),
       ],
     );
   }

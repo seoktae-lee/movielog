@@ -7,8 +7,9 @@ import '../data/models/tmdb_movie_dto.dart';
 import '../data/services/rating_api_service.dart';
 import '../data/services/tmdb_movie_service.dart';
 import '../theme/app_text_styles.dart';
-import '../view_models/learning_member_session.dart';
+import '../view_models/auth_view_model.dart';
 import '../view_models/movie_detail_view_model.dart';
+import '../view_models/session_rating_store.dart';
 import '../widgets/common_app_bar.dart';
 import 'movie_detail_screen.dart';
 
@@ -75,8 +76,9 @@ class _MovieDetailLoaderState extends State<MovieDetailLoader> {
         return ChangeNotifierProvider<MovieDetailViewModel>(
           create: (context) => MovieDetailViewModel(
             context.read<RatingApiService>(),
-            // 6주차 고정 memberId 1이 아니라 회원가입 결과로 저장한 학습용 ID.
-            context.read<LearningMemberSession>().memberId,
+            // 8주차: memberId 대신 로그인 세션. 등록 결과는 세션 평점 보관함에 넣는다.
+            context.read<AuthViewModel>(),
+            context.read<SessionRatingStore>(),
             snapshot.data!,
           ),
           child: const MovieDetailScreen(),

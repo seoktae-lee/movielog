@@ -14,34 +14,34 @@ class SignUpService {
 
   final Dio _dio;
 
-  /// 닉네임을 쓸 수 있으면 true. (`GET /v6/members/nickname/{nickname}`)
+  /// 닉네임을 쓸 수 있으면 true. (`GET /v7/members/nickname/{nickname}`)
   ///
   /// 성공 응답은 v5처럼 `{ "available": true }` 직접 객체다. 실패만 공통 형식으로 감싸진다.
   Future<bool> checkNickname(String nickname) async {
     // 한글·공백·특수문자가 경로에 그대로 들어가지 않도록 인코딩한다.
     final encoded = Uri.encodeComponent(nickname.trim());
-    final response = await _dio.get('/v6/members/nickname/$encoded');
+    final response = await _dio.get('/v7/members/nickname/$encoded');
     return CheckResult.fromJson(response.data as Map<String, dynamic>)
         .available;
   }
 
-  /// 이메일을 쓸 수 있으면 true. (`GET /v6/members/email/{email}`)
+  /// 이메일을 쓸 수 있으면 true. (`GET /v7/members/email/{email}`)
   Future<bool> checkEmail(String email) async {
     // `@`도 경로에서는 `%40`으로 바꿔 보낸다.
     final encoded = Uri.encodeComponent(email.trim());
-    final response = await _dio.get('/v6/members/email/$encoded');
+    final response = await _dio.get('/v7/members/email/$encoded');
     return CheckResult.fromJson(response.data as Map<String, dynamic>)
         .available;
   }
 
-  /// 회원가입. (`POST /v6/members`, 성공 201 + `CommonResponse<SignUpResult>`)
+  /// 회원가입. (`POST /v7/members`, 성공 201 + `CommonResponse<SignUpResult>`)
   ///
   /// 중복 확인을 통과했어도 그 사이 다른 사람이 같은 값을 등록할 수 있다.
   /// 그래서 여기서 오는 409가 "최종" 중복 결과다.
   Future<CommonResponse<SignUpResult>> signUp(
     CreateMemberRequest request,
   ) async {
-    final response = await _dio.post('/v6/members', data: request.toJson());
+    final response = await _dio.post('/v7/members', data: request.toJson());
 
     return CommonResponse<SignUpResult>.fromJson(
       response.data as Map<String, dynamic>,

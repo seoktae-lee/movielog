@@ -72,7 +72,7 @@ class MyRatingTile extends StatelessWidget {
                   children: [
                     Text(
                       // TMDB 정보를 못 받아도 어떤 영화인지 id로는 알 수 있게 한다.
-                      movie?.title ?? '영화 정보 없음 (movieId ${rating.movieId})',
+                      movie?.title ?? '영화 #${rating.movieId}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppTextStyles.bodyMedium.copyWith(
@@ -115,7 +115,7 @@ class MyRatingTile extends StatelessWidget {
   }
 
   Widget _trailing() {
-    final title = entry.movie?.title ?? 'movieId ${entry.rating.movieId}';
+    final title = entry.movie?.title ?? '영화 #${entry.rating.movieId}';
     if (selected case final isSelected?) {
       return Checkbox(
         value: isSelected,

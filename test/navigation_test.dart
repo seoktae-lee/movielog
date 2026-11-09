@@ -1,76 +1,118 @@
-// 5주차 화면 흐름을 실제 AppRouter + Provider로 검증하는 Widget 테스트.
+// 화면 흐름을 실제 AppRouter + Provider로 검증하는 Widget 테스트.
 //
-// 네트워크 대신 FakeTmdbMovieService를 MovieLogApp에 넣는다.
-// 화면(UI Layer)은 이 값이 실제 TMDB 응답인지 fixture인지 모른다.
+// 네트워크 대신 Fake Service를 MovieLogApp에 넣는다.
+// 8주차: 저장소에 토큰이 있으면 세션 복원(GET me) → /home으로 시작한다.
 
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:movielog/app/movie_log_app.dart';
+import 'package:movielog/data/models/rating_dto.dart';
 import 'package:movielog/data/models/tmdb_movie_page.dart';
-import 'package:movielog/router/app_router.dart';
 import 'package:movielog/screens/home_screen.dart';
+import 'package:movielog/screens/login_screen.dart';
 import 'package:movielog/screens/movie_detail_screen.dart';
 import 'package:movielog/screens/movie_list_screen.dart';
 import 'package:movielog/screens/main_screen.dart';
 import 'package:movielog/screens/my_page_screen.dart';
 import 'package:movielog/screens/my_ratings_screen.dart';
 import 'package:movielog/screens/sign_up_screen.dart';
-import 'package:movielog/screens/start_screen.dart';
+import 'package:movielog/view_models/auth_view_model.dart';
+import 'package:movielog/view_models/session_rating_store.dart';
 import 'package:movielog/widgets/genre_filter_sheet.dart';
 import 'package:movielog/widgets/horizontal_movie_list.dart';
 import 'package:movielog/widgets/movie_list_error.dart';
 import 'package:movielog/widgets/movie_list_loading.dart';
 import 'package:movielog/widgets/rating_dialog.dart';
+import 'package:provider/provider.dart';
 
 import 'support/fake_movielog_services.dart';
 import 'support/fake_tmdb_movie_service.dart';
 import 'support/tmdb_fixtures.dart';
 
+/// 이번 세션에서 등록했다고 가정할 평점. (ratingId 내림차순)
+final seedRatings = <RatingDto>[
+  fakeRating(3, 13, 3, null),
+  fakeRating(2, 680, 4, '다시 봐도 좋다'),
+  fakeRating(1, 550, 5, '최고의 영화!'),
+];
+
 void main() {
   late FakeTmdbMovieService service;
   late FakeSignUpService checkService;
   late FakeRatingApiService ratingService;
+  late FakeAuthApiService authService;
+  late FakeMemberApiService memberService;
+  late InMemoryTokenStorage storage;
 
   setUp(() {
     service = FakeTmdbMovieService();
     checkService = FakeSignUpService();
     ratingService = FakeRatingApiService();
+    authService = FakeAuthApiService();
+    memberService = FakeMemberApiService();
+    storage = InMemoryTokenStorage();
   });
 
-  // AppRouter.router는 앱 전체에 하나뿐(static)이라 테스트 사이에 위치가 남는다.
-  // 각 테스트가 원하는 위치에서 시작하도록 직접 옮긴다.
+  BuildContext appContext(WidgetTester tester) =>
+      tester.element(find.byType(Navigator).first);
+
+  GoRouter router(WidgetTester tester) => GoRouter.of(appContext(tester));
+
+  /// [signedIn]이면 저장소에 토큰을 넣어 두고 앱을 켠다 → GET me 성공 → /home.
+  /// 그다음 [location]으로 이동한다. signedOut이면 Router가 /login으로 보낸다.
   Future<void> pumpAppAt(
     WidgetTester tester,
     String location, {
-    int? memberId = 42,
+    bool signedIn = true,
+    List<RatingDto>? sessionRatings,
   }) async {
     // 세로가 긴 폰 크기로 고정해 가로 목록·그리드가 화면 안에 들어오게 한다.
     tester.view.physicalSize = const Size(1170, 2532);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
 
-    // 앱을 그리기 전에 위치를 옮겨야 이전 테스트의 화면이 잠깐이라도 만들어지지 않는다.
-    AppRouter.router.go(location);
+    storage.token = signedIn ? 'saved-token' : null;
     await tester.pumpWidget(
       MovieLogApp(
         movieService: service,
         signUpService: checkService,
         ratingApiService: ratingService,
-        initialMemberId: memberId,
+        authApiService: authService,
+        memberApiService: memberService,
+        tokenStorage: storage,
+        emailPreferences: FakeEmailPreferences(),
+        installMarker: FakeInstallMarker(),
       ),
     );
     await tester.pumpAndSettle();
+
+    if (sessionRatings != null) {
+      final context = appContext(tester);
+      final version = context.read<AuthViewModel>().sessionVersion;
+      final store = context.read<SessionRatingStore>();
+      // 보관함은 최근 것을 위에 넣으므로 오래된 것부터 넣는다.
+      for (final rating in sessionRatings.reversed) {
+        store.add(version, rating);
+      }
+    }
+    if (signedIn && location != '/home') {
+      router(tester).go(location);
+      await tester.pumpAndSettle();
+    }
   }
 
   // push로 쌓은 화면까지 반영된 맨 위 화면의 위치.
-  String currentLocation() => AppRouter.router.state.uri.toString();
+  String currentLocation(WidgetTester tester) =>
+      router(tester).state.uri.toString();
 
-  testWidgets('시작 → 회원가입(POST) → 영화 목록으로 이어지고, 뒤로 갈 곳이 없다', (tester) async {
-    await pumpAppAt(tester, '/start', memberId: null);
+  testWidgets('로그인 화면 → 회원가입(POST) → 로그인 화면으로 돌아오고 이메일이 채워진다', (tester) async {
+    await pumpAppAt(tester, '/login', signedIn: false);
+    expect(find.byType(LoginScreen), findsOneWidget);
 
-    await tester.tap(find.widgetWithText(ElevatedButton, '시작하기'));
+    await tester.tap(find.text('아직 회원이 아니신가요? 회원가입'));
     await tester.pumpAndSettle();
     expect(find.byType(SignUpScreen), findsOneWidget);
 
@@ -86,20 +128,21 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(checkService.signUpCalls, hasLength(1));
-    expect(find.byType(MovieListScreen), findsOneWidget);
-    expect(currentLocation(), '/movies');
-    expect(AppRouter.router.canPop(), isFalse);
+    expect(find.byType(LoginScreen), findsOneWidget);
+    expect(currentLocation(tester), '/login');
+    expect(find.text('a@b.com'), findsOneWidget);
+    expect(router(tester).canPop(), isFalse);
   });
 
-  testWidgets('회원가입은 push로 열려 뒤로 가면 시작 화면으로 돌아간다', (tester) async {
-    await pumpAppAt(tester, '/start', memberId: null);
+  testWidgets('회원가입은 push로 열려 뒤로 가면 로그인 화면으로 돌아간다', (tester) async {
+    await pumpAppAt(tester, '/login', signedIn: false);
 
-    await tester.tap(find.widgetWithText(ElevatedButton, '시작하기'));
+    await tester.tap(find.text('아직 회원이 아니신가요? 회원가입'));
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.arrow_back));
     await tester.pumpAndSettle();
 
-    expect(find.byType(StartScreen), findsOneWidget);
+    expect(find.byType(LoginScreen), findsOneWidget);
   });
 
   testWidgets('홈은 Popular 결과 중 5개만 보여 주고, 다시 그려도 요청을 반복하지 않는다', (tester) async {
@@ -147,7 +190,7 @@ void main() {
     await tester.tap(find.text('영화 102'));
     await tester.pumpAndSettle();
 
-    expect(currentLocation(), '/movies/102');
+    expect(currentLocation(tester), '/movies/102');
     expect(find.byType(MovieDetailScreen), findsOneWidget);
     expect(find.textContaining('movieId 102'), findsOneWidget);
     expect(service.detailCalls, isEmpty);
@@ -343,8 +386,8 @@ void main() {
     await tester.tap(dialogButton('확인'));
     await tester.pumpAndSettle();
 
-    final (memberId, request) = ratingService.createCalls.single;
-    expect(memberId, 42);
+    // path·body 어디에도 memberId가 없다. 토큰은 보호용 Client가 붙인다.
+    final request = ratingService.createCalls.single;
     expect(request.toJson(), {
       'movieId': 550,
       'score': 3,
@@ -352,12 +395,14 @@ void main() {
     });
     expect(find.byType(RatingDialog), findsNothing);
     expect(find.textContaining('평점을 등록했습니다.'), findsOneWidget);
+    // 등록 result(Rating 객체)로 "내 평점"이 바로 바뀌고 같은 영화에 다시 POST할 수 없다.
+    expect(find.text('등록 완료 · 수정은 마이페이지에서'), findsOneWidget);
   });
 
   testWidgets('등록 409면 Dialog가 열린 채 서버 문구를 보여 주고 입력을 유지한다', (tester) async {
     ratingService.writeError = fakeMovieLogError(
       statusCode: 409,
-      code: 'COMMON409',
+      code: 'RATING409_1',
       message: '이미 이 영화에 평점을 남기셨습니다.',
     );
     await pumpAppAt(tester, '/movies/550');
@@ -370,7 +415,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(RatingDialog), findsOneWidget);
-    expect(find.text('이미 이 영화에 평점을 남기셨습니다.'), findsOneWidget);
+    expect(find.text('이미 이 영화에 평점을 남겼어요. 기존 기록을 확인해 주세요.'), findsOneWidget);
+    // 409는 안내만 하고 로그인 상태를 유지한다.
+    expect(storage.token, 'saved-token');
     expect(find.text('코멘트'), findsOneWidget);
     expect(find.text('4점'), findsOneWidget);
     // 실패 뒤에도 로딩이 풀려 다시 시도할 수 있다.
@@ -415,11 +462,23 @@ void main() {
     expect(find.byType(RatingDialog), findsNothing);
   });
 
-  testWidgets('가입 전(memberId 없음)에는 평점 남기기 대신 회원가입 안내', (tester) async {
-    await pumpAppAt(tester, '/movies/550', memberId: null);
+  testWidgets('등록 중 토큰이 만료(AUTH401_4)되면 세션을 정리하고 로그인 화면에서 만료 안내', (
+    tester,
+  ) async {
+    ratingService.writeError = fakeSessionExpired();
+    await pumpAppAt(tester, '/movies/550');
 
-    expect(find.widgetWithText(ElevatedButton, '평점 남기기'), findsNothing);
-    expect(find.text('회원가입하러 가기'), findsOneWidget);
+    await tester.tap(find.widgetWithText(ElevatedButton, '평점 남기기'));
+    await tester.pumpAndSettle();
+    await tester.tap(dialogStars().at(3));
+    await tester.pump(); // 별점을 고른 뒤 확인 버튼이 활성화되도록 한 프레임 그린다.
+    await tester.tap(dialogButton('확인'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(LoginScreen), findsOneWidget);
+    expect(find.byType(RatingDialog), findsNothing);
+    expect(storage.token, isNull);
+    expect(find.text('로그인이 만료됐어요. 다시 로그인해 주세요.'), findsOneWidget);
   });
 
   testWidgets('포스터 경로가 없으면 placeholder를, 줄거리가 없으면 안내 문구를 보여 준다', (
@@ -451,72 +510,66 @@ void main() {
   testWidgets('마이페이지 → 내가 등록한 평점: NavigationBar 없이 열리고 뒤로 가면 돌아온다', (
     tester,
   ) async {
-    await pumpAppAt(tester, '/my');
+    await pumpAppAt(tester, '/my', sessionRatings: seedRatings);
     expect(find.byType(MyPageScreen), findsOneWidget);
     expect(find.byType(NavigationBar), findsOneWidget);
-    // 마이페이지만 열었을 때는 평점을 부르지 않는다.
-    expect(ratingService.calls, isEmpty);
 
     await tester.tap(find.text('내가 등록한 평점'));
     await tester.pumpAndSettle();
 
     expect(find.byType(MyRatingsScreen), findsOneWidget);
-    expect(currentLocation(), '/my/ratings');
+    expect(currentLocation(tester), '/my/ratings');
     // root Navigator에 쌓였으므로 Shell(MainScreen)의 NavigationBar가 가려진다.
     expect(find.byType(NavigationBar), findsNothing);
-    expect(ratingService.calls, [42]);
+    // v7에는 토큰 기반 "내 평점 목록 GET"이 없다. 서버 조회 없이 세션 평점을 보여 준다.
+    expect(ratingService.calls, isEmpty);
 
     // TMDB 제목·점수·후기·등록일. comment가 null인 평점은 후기를 그리지 않는다.
     expect(find.text('상세 680'), findsOneWidget);
     expect(find.text('다시 봐도 좋다'), findsOneWidget);
     expect(find.text('3.0'), findsOneWidget);
     expect(find.textContaining('등록'), findsWidgets);
-    expect(find.text('학습용 memberId 42 · 평점 3개'), findsOneWidget);
+    expect(find.text('이번 로그인에서 등록한 평점 3개'), findsOneWidget);
 
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
     expect(find.byType(MyPageScreen), findsOneWidget);
     expect(find.byType(MainScreen), findsOneWidget);
-    expect(currentLocation(), '/my');
+    expect(currentLocation(tester), '/my');
   });
 
   testWidgets('평점 카드를 누르면 받은 영화 정보로 상세에 간다', (tester) async {
-    await pumpAppAt(tester, '/my/ratings');
+    await pumpAppAt(tester, '/my/ratings', sessionRatings: seedRatings);
     service.detailCalls.clear();
 
     await tester.tap(find.text('상세 550'));
     await tester.pumpAndSettle();
-    expect(currentLocation(), '/movies/550');
+    expect(currentLocation(tester), '/movies/550');
     expect(service.detailCalls, isEmpty);
   });
 
-  testWidgets('평점 조회 실패면 Error 문구와 다시 시도, 성공하면 목록', (tester) async {
-    ratingService.error = fakeMovieLogError(statusCode: 404);
-    await pumpAppAt(tester, '/my/ratings');
+  testWidgets('TMDB에서 영화를 못 찾으면 평점은 남기고 "영화 #id"로 표시한다', (tester) async {
+    service.onDetail = (movieId) async => throw fakeDioError(statusCode: 404);
+    await pumpAppAt(
+      tester,
+      '/my/ratings',
+      sessionRatings: [fakeRating(9, 999, 2, null)],
+    );
 
-    expect(find.text('존재하지 않는 회원입니다.'), findsOneWidget);
-
-    ratingService.error = null;
-    await tester.tap(find.text('다시 시도'));
-    await tester.pumpAndSettle();
-    expect(find.text('상세 550'), findsOneWidget);
+    expect(find.text('영화 #999'), findsOneWidget);
+    expect(find.text('2.0'), findsOneWidget);
   });
 
-  testWidgets('평점이 없으면 Empty 화면', (tester) async {
-    ratingService.ratings = [];
+  testWidgets('이번 세션에 등록한 평점이 없으면 Empty 화면', (tester) async {
     await pumpAppAt(tester, '/my/ratings');
-    expect(find.text('아직 등록한 평점이 없습니다.'), findsOneWidget);
+    expect(find.text('이번 로그인에서 등록한 평점이 없습니다.'), findsOneWidget);
   });
 
-  testWidgets('가입 전에는 내가 등록한 평점 대신 회원가입 안내', (tester) async {
-    await pumpAppAt(tester, '/my/ratings', memberId: null);
-    expect(find.text('학습용 회원가입이 필요합니다.'), findsOneWidget);
-    expect(ratingService.calls, isEmpty);
-  });
-
-  testWidgets('수정 버튼 → 기존 별점·코멘트가 채워진 Dialog → PATCH 후 목록 재조회', (tester) async {
-    await pumpAppAt(tester, '/my/ratings');
-    ratingService.calls.clear();
+  testWidgets('수정 버튼 → 기존 별점·코멘트가 채워진 Dialog → v7 PATCH result로 카드 갱신', (
+    tester,
+  ) async {
+    ratingService.ratings = List.of(seedRatings);
+    await pumpAppAt(tester, '/my/ratings', sessionRatings: seedRatings);
 
     await tester.tap(find.byTooltip('상세 680 평점 수정'));
     await tester.pumpAndSettle();
@@ -529,14 +582,14 @@ void main() {
     await tester.tap(dialogButton('확인'));
     await tester.pumpAndSettle();
 
-    expect(ratingService.updateCalls.single, (42, 2, 2, '두 번째는 별로'));
-    expect(ratingService.calls, [42]);
+    expect(ratingService.updateCalls.single, (2, 2, '두 번째는 별로'));
+    expect(ratingService.calls, isEmpty); // 다시 GET하지 않는다.
     expect(find.text('두 번째는 별로'), findsOneWidget);
     expect(find.text('평점을 수정했습니다.'), findsOneWidget);
   });
 
   testWidgets('comment가 null인 평점은 빈 칸으로 열린다', (tester) async {
-    await pumpAppAt(tester, '/my/ratings');
+    await pumpAppAt(tester, '/my/ratings', sessionRatings: seedRatings);
 
     await tester.tap(find.byTooltip('상세 13 평점 수정'));
     await tester.pumpAndSettle();
@@ -546,7 +599,7 @@ void main() {
   });
 
   testWidgets('삭제: 취소하면 요청이 없고, 삭제하면 DELETE 후 목록에서 사라진다', (tester) async {
-    await pumpAppAt(tester, '/my/ratings');
+    await pumpAppAt(tester, '/my/ratings', sessionRatings: seedRatings);
 
     await tester.tap(find.byTooltip('상세 550 평점 삭제'));
     await tester.pumpAndSettle();
@@ -560,45 +613,44 @@ void main() {
     await tester.tap(find.widgetWithText(ElevatedButton, '삭제'));
     await tester.pumpAndSettle();
 
-    expect(ratingService.deleteCalls.single, (42, 1));
+    expect(ratingService.deleteCalls.single, 1);
     expect(find.text('상세 550'), findsNothing);
-    expect(find.text('학습용 memberId 42 · 평점 2개'), findsOneWidget);
+    expect(find.text('이번 로그인에서 등록한 평점 2개'), findsOneWidget);
   });
 
   testWidgets('마지막 평점을 삭제하면 Empty 화면', (tester) async {
-    ratingService.ratings = [FakeRatingApiService.defaultRatings.last];
-    await pumpAppAt(tester, '/my/ratings');
+    await pumpAppAt(tester, '/my/ratings', sessionRatings: [seedRatings.last]);
 
     await tester.tap(find.byTooltip('상세 550 평점 삭제'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ElevatedButton, '삭제'));
     await tester.pumpAndSettle();
 
-    expect(find.text('아직 등록한 평점이 없습니다.'), findsOneWidget);
+    expect(find.text('이번 로그인에서 등록한 평점이 없습니다.'), findsOneWidget);
   });
 
-  testWidgets('저장 성공 후 GET만 실패하면 저장 안내와 조회 다시 시도', (tester) async {
-    await pumpAppAt(tester, '/my/ratings');
-    ratingService.error = fakeMovieLogError();
+  testWidgets('수정 403(남의 평점)이면 Dialog에 안내만 하고 로그인 상태를 유지한다', (tester) async {
+    ratingService.ratings = List.of(seedRatings);
+    ratingService.writeError = fakeMovieLogError(
+      statusCode: 403,
+      code: 'RATING403_1',
+      message: '본인이 작성한 평점만 수정하거나 삭제할 수 있습니다.',
+    );
+    await pumpAppAt(tester, '/my/ratings', sessionRatings: seedRatings);
 
     await tester.tap(find.byTooltip('상세 680 평점 수정'));
     await tester.pumpAndSettle();
     await tester.tap(dialogButton('확인'));
     await tester.pumpAndSettle();
 
-    // Dialog는 저장 성공으로 닫히고, 목록 자리에 재조회 실패 안내.
-    expect(find.byType(RatingDialog), findsNothing);
-    expect(find.textContaining('저장은 완료됐지만'), findsOneWidget);
-
-    ratingService.error = null;
-    await tester.tap(find.text('다시 시도'));
-    await tester.pumpAndSettle();
-    expect(find.text('상세 680'), findsOneWidget);
-    expect(ratingService.updateCalls, hasLength(1));
+    expect(find.byType(RatingDialog), findsOneWidget);
+    expect(find.text('본인이 작성한 평점만 수정하거나 삭제할 수 있어요.'), findsOneWidget);
+    expect(storage.token, 'saved-token');
+    expect(find.byType(LoginScreen), findsNothing);
   });
 
   testWidgets('편집 모드: 체크박스로 고르고 선택한 N개 삭제 (Challenge)', (tester) async {
-    await pumpAppAt(tester, '/my/ratings');
+    await pumpAppAt(tester, '/my/ratings', sessionRatings: seedRatings);
 
     await tester.tap(find.text('편집'));
     await tester.pump();
@@ -641,7 +693,7 @@ void main() {
 
     ratingService.writeGate!.complete();
     await tester.pumpAndSettle();
-    expect(ratingService.deleteCalls.map((c) => c.$2), [3, 1]);
+    expect(ratingService.deleteCalls, [3, 1]);
     expect(find.text('상세 680'), findsOneWidget);
     expect(find.text('상세 13'), findsNothing);
     expect(find.text('선택한 평점 2개를 삭제했습니다.'), findsOneWidget);
@@ -650,7 +702,7 @@ void main() {
   testWidgets('다중 삭제 일부 실패: 실패 항목만 남고 Snackbar', (tester) async {
     ratingService.writeErrorFor = (id) =>
         id == 3 ? fakeMovieLogError(statusCode: 500) : null;
-    await pumpAppAt(tester, '/my/ratings');
+    await pumpAppAt(tester, '/my/ratings', sessionRatings: seedRatings);
 
     await tester.tap(find.text('편집'));
     await tester.pump();
@@ -666,5 +718,84 @@ void main() {
     expect(find.text('상세 680'), findsNothing);
     expect(find.text('1개 선택'), findsOneWidget);
     expect(find.textContaining('1개 항목을 삭제하지 못했습니다.'), findsOneWidget);
+  });
+
+  group('8주차 프로필 수정·로그아웃', () {
+    Future<void> openEdit(WidgetTester tester) async {
+      await pumpAppAt(tester, '/my');
+      await tester.scrollUntilVisible(
+        find.text('프로필 수정'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('프로필 수정'));
+      await tester.pumpAndSettle();
+      expect(currentLocation(tester), '/my/profile/edit');
+      expect(find.byType(NavigationBar), findsNothing);
+    }
+
+    testWidgets('저장에 성공하면 마이페이지로 돌아가고 새 닉네임이 바로 보인다', (tester) async {
+      await openEdit(tester);
+
+      await tester.enterText(find.byType(TextField).last, '새닉네임');
+      await tester.pump();
+      await tester.tap(find.text('저장'));
+      await tester.pumpAndSettle();
+
+      expect(memberService.updateCalls, ['새닉네임']);
+      expect(currentLocation(tester), '/my');
+      expect(find.text('새닉네임'), findsOneWidget);
+      expect(find.text('프로필을 수정했어요.'), findsOneWidget);
+    });
+
+    testWidgets('변경 후 뒤로가기는 확인 Dialog: 계속 수정이면 남고, 나가기면 돌아간다', (tester) async {
+      await openEdit(tester);
+      await tester.enterText(find.byType(TextField).last, '바꾸는중');
+      await tester.pump();
+
+      await tester.tap(find.byIcon(Icons.arrow_back));
+      await tester.pumpAndSettle();
+      expect(find.text('수정을 그만둘까요?'), findsOneWidget);
+
+      await tester.tap(find.text('계속 수정'));
+      await tester.pumpAndSettle();
+      expect(currentLocation(tester), '/my/profile/edit');
+
+      await tester.tap(find.byIcon(Icons.arrow_back));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('나가기'));
+      await tester.pumpAndSettle();
+      expect(currentLocation(tester), '/my');
+      expect(memberService.updateCalls, isEmpty);
+    });
+
+    testWidgets('MEMBER409_1이면 필드 아래 오류와 입력값 유지, 화면에 남는다', (tester) async {
+      memberService.updateError = fakeMovieLogError(
+        statusCode: 409,
+        code: 'MEMBER409_1',
+      );
+      await openEdit(tester);
+      await tester.enterText(find.byType(TextField).last, '영화광');
+      await tester.tap(find.text('저장'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('이미 사용 중인 닉네임이에요.'), findsOneWidget);
+      expect(find.text('영화광'), findsOneWidget);
+      expect(currentLocation(tester), '/my/profile/edit');
+    });
+
+    testWidgets('로그아웃하면 /login으로 가고 만료 Snackbar는 없으며, 보호 화면으로 갈 수 없다', (tester) async {
+      await pumpAppAt(tester, '/my');
+      await tester.tap(find.text('로그아웃'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(LoginScreen), findsOneWidget);
+      expect(storage.token, isNull);
+      expect(find.text('로그인이 만료됐어요. 다시 로그인해 주세요.'), findsNothing);
+
+      router(tester).go('/my');
+      await tester.pumpAndSettle();
+      expect(currentLocation(tester), '/login');
+    });
   });
 }

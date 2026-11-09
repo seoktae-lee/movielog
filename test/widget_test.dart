@@ -9,9 +9,8 @@ import 'package:provider/provider.dart';
 
 import 'package:movielog/screens/profile_screen.dart';
 import 'package:movielog/screens/sign_up_screen.dart';
-import 'package:movielog/screens/start_screen.dart';
+import 'package:movielog/screens/splash_screen.dart';
 import 'package:movielog/theme/app_theme.dart';
-import 'package:movielog/view_models/learning_member_session.dart';
 import 'package:movielog/view_models/sign_up_view_model.dart';
 import 'package:movielog/widgets/movielog_button.dart';
 import 'package:movielog/widgets/stat_item.dart';
@@ -41,11 +40,23 @@ void main() {
     expect(find.widgetWithText(ElevatedButton, '프로필 수정'), findsOneWidget);
   });
 
-  testWidgets('시작 화면에 문구와 시작하기 버튼이 표시된다', (WidgetTester tester) async {
-    await tester.pumpWidget(const MaterialApp(home: StartScreen()));
-
+  testWidgets('Splash: 확인 중엔 인디케이터, 실패면 문구와 다시 시도 (1주차 레이아웃 재사용)', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: SplashScreen()));
     expect(find.text('영화의 순간을 기록하세요'), findsOneWidget);
-    expect(find.widgetWithText(ElevatedButton, '시작하기'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.text('시작하기'), findsNothing);
+
+    var retried = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SplashScreen(message: '확인 실패', onRetry: () => retried++),
+      ),
+    );
+    expect(find.text('확인 실패'), findsOneWidget);
+    await tester.tap(find.text('다시 시도'));
+    expect(retried, 1);
   });
 
   group('회원가입 화면', () {
@@ -55,7 +66,6 @@ void main() {
 
     Widget withViewModel(Widget child) => MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => LearningMemberSession()),
         ChangeNotifierProvider(create: (_) => SignUpViewModel(checkService)),
       ],
       child: child,
@@ -185,11 +195,8 @@ void main() {
       expect(checkService.emailCalls, isEmpty);
     });
 
-    late LearningMemberSession session;
-
-    /// _submit()이 context.go('/movies')를 호출하므로 GoRouter 안에서 띄운다.
+    /// _submit()이 context.go('/login')을 호출하므로 GoRouter 안에서 띄운다.
     Future<void> pumpSignUpInRouter(WidgetTester tester) async {
-      session = LearningMemberSession();
       final router = GoRouter(
         initialLocation: '/register',
         routes: [
@@ -201,16 +208,15 @@ void main() {
             ),
           ),
           GoRoute(
-            path: '/movies',
+            path: '/login',
             builder: (context, state) =>
-                const Scaffold(body: Text('테스트용 영화 목록')),
+                Scaffold(body: Text('테스트용 로그인 ${state.extra}')),
           ),
         ],
       );
       await tester.pumpWidget(
-        ChangeNotifierProvider.value(
-          value: session,
-          child: MaterialApp.router(
+        Builder(
+          builder: (_) => MaterialApp.router(
             theme: AppTheme.light,
             routerConfig: router,
           ),
@@ -281,7 +287,6 @@ void main() {
       expect(errorTextOf(tester, nicknameField()), '이미 사용 중인 닉네임입니다.');
       expect(isEnabled(tester, submitButton()), isFalse);
       expect(find.byType(SignUpScreen), findsOneWidget);
-      expect(session.memberId, isNull);
     });
 
     testWidgets('제출 중에는 버튼이 로딩이고 뒤로 갈 수 없다 (Challenge)', (tester) async {
@@ -313,10 +318,9 @@ void main() {
 
       checkService.gate!.complete();
       await tester.pumpAndSettle();
-      expect(session.memberId, 42);
     });
 
-    testWidgets('두 칸 모두 확인되고 입력이 유효하면 가입 POST 후 /movies로 이동한다', (tester) async {
+    testWidgets('두 칸 모두 확인되고 입력이 유효하면 가입 POST 후 /login으로 이메일을 넘긴다', (tester) async {
       await pumpSignUpInRouter(tester);
 
       await tester.enterText(nicknameField(), '태이');
@@ -335,14 +339,12 @@ void main() {
       await tester.tap(submitButton());
       await tester.pump();
       await tester.pump();
-      expect(find.text('태이님, 가입을 환영합니다! (memberId 42)'), findsOneWidget);
-      // 가입 결과 memberId가 학습용 세션에 저장된다.
-      expect(session.memberId, 42);
+      expect(find.text('태이님, 가입을 환영합니다! 로그인해 주세요.'), findsOneWidget);
       expect(checkService.signUpCalls.single.nickname, '태이');
 
-      // go로 이동했으므로 회원가입 화면은 사라지고 영화 목록만 남는다.
+      // 가입 응답엔 토큰이 없다. go로 로그인 화면에 가면서 이메일을 넘긴다.
       await tester.pumpAndSettle();
-      expect(find.text('테스트용 영화 목록'), findsOneWidget);
+      expect(find.text('테스트용 로그인 a@b.com'), findsOneWidget);
       expect(find.byType(SignUpScreen), findsNothing);
     });
   });

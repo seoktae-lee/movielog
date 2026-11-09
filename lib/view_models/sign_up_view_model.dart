@@ -48,7 +48,7 @@ class SignUpViewModel extends ChangeNotifier {
   // ── 가입 제출 ──
   SubmitStatus submitStatus = SubmitStatus.idle;
 
-  /// 가입 성공 응답의 result에서 읽은 실제 ID. 평점 요청 path에 쓴다.
+  /// 가입 성공 응답의 result에서 읽은 실제 ID. 가입이 정말 끝났는지 확인하는 데만 쓴다. (v7 평점 요청에는 쓰지 않는다)
   int? createdMemberId;
 
   /// 서버가 비밀번호 형식을 거부했을 때(400) 비밀번호 칸 아래에 보여 줄 문구. (필드 단위 오류)

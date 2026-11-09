@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../data/models/tmdb_movie_dto.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
+import '../view_models/auth_view_model.dart';
 import '../view_models/movie_home_view_model.dart';
 import '../widgets/common_app_bar.dart';
 import '../widgets/featured_movie_card.dart';
@@ -30,10 +31,17 @@ class HomeScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.only(bottom: 24),
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 4, 16, 16),
+          // 8주차: 인사말 닉네임은 GET me로 받은 내 정보. 받기 전에는 닉네임 없이 인사한다.
+          // select로 닉네임만 구독하므로 인기 영화 영역은 함께 다시 그려지지 않는다.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
             child: Text(
-              '무비러버님,\n오늘은 어떤 영화를 기록할까요?',
+              switch (context.select<AuthViewModel, String?>(
+                (auth) => auth.member?.nickname,
+              )) {
+                final nickname? => '$nickname님,\n오늘은 어떤 영화를 기록할까요?',
+                null => '오늘은 어떤 영화를\n기록할까요?',
+              },
               style: AppTextStyles.titleLarge,
             ),
           ),

@@ -9,7 +9,6 @@ import '../theme/app_text_styles.dart';
 import '../view_models/my_ratings_view_model.dart';
 import '../widgets/loading_overlay.dart';
 import '../widgets/movie_list_empty.dart';
-import '../widgets/movie_list_error.dart';
 import '../widgets/movielog_button.dart';
 import '../widgets/my_rating_tile.dart';
 import '../widgets/rating_dialog.dart';
@@ -17,7 +16,8 @@ import '../widgets/rating_dialog.dart';
 /// 마이페이지 → "내가 등록한 평점" 자식 화면.
 ///
 /// root Navigator 위에 push되므로 하단 NavigationBar가 없다.
-/// 7주차: 회원가입 결과로 저장한 학습용 memberId의 평점을 조회하고, 카드마다 수정·삭제한다.
+/// 8주차: 이번 로그인 세션에서 등록한 평점(v7 등록 result)을 보여 주고, 카드마다 v7 PATCH·DELETE로 수정·삭제한다.
+/// v7에는 토큰 기반 "내 평점 전체 조회"가 없어 앱 재시작 뒤 이전 평점은 복원하지 않는다.
 /// 상단 "편집"으로 다중 선택 모드에 들어가 여러 개를 한 번에 지울 수 있다. (Challenge)
 class MyRatingsScreen extends StatelessWidget {
   const MyRatingsScreen({super.key});
@@ -58,41 +58,13 @@ class MyRatingsScreen extends StatelessWidget {
             MyRatingsLoadStatus.idle ||
             MyRatingsLoadStatus.loading => const _RatingsLoading(),
             MyRatingsLoadStatus.empty => const MovieListEmpty(
-              message: '아직 등록한 평점이 없습니다.',
-              description: '영화 상세에서 평점을 남기면 여기에 표시돼요.',
-            ),
-            // 저장은 됐는데 GET만 실패했으면 그 사실을 먼저 알리고, 버튼은 "조회"만 다시 한다.
-            MyRatingsLoadStatus.error => MovieListError(
-              message:
-                  viewModel.refreshWarning ??
-                  viewModel.message ??
-                  '평점을 불러오지 못했습니다.',
-              description: viewModel.refreshWarning != null
-                  ? '다시 시도는 목록 조회(GET)만 보냅니다.'
-                  : 'memberId ${viewModel.memberId} 조회에 실패했어요.',
-              onRetry: viewModel.load,
+              message: '이번 로그인에서 등록한 평점이 없습니다.',
+              description: '영화 상세에서 평점을 남기면 여기에 표시돼요.\n'
+                  '앱을 다시 시작하면 이전 평점은 표시되지 않아요. (v7 API 한계)',
             ),
             MyRatingsLoadStatus.success => _RatingsList(viewModel: viewModel),
           },
         ),
-      ),
-    );
-  }
-}
-
-/// 회원가입 결과 memberId가 없을 때. (앱 재시작 등으로 학습용 세션이 비었을 때)
-class MyRatingsSignUpRequired extends StatelessWidget {
-  const MyRatingsSignUpRequired({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(centerTitle: true, title: const Text('내가 등록한 평점')),
-      body: MovieListEmpty(
-        message: '학습용 회원가입이 필요합니다.',
-        description: '가입 결과의 memberId로 평점을 조회합니다. 앱을 재시작하면 다시 가입해야 해요.',
-        actionLabel: '회원가입하러 가기',
-        onAction: () => context.push('/register'),
       ),
     );
   }
@@ -270,6 +242,7 @@ class _RatingsList extends StatelessWidget {
     return RefreshIndicator(
       onRefresh: viewModel.load,
       child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.only(bottom: 24),
         children: [
           _ListHeader(viewModel: viewModel),
@@ -313,7 +286,7 @@ class _ListHeader extends StatelessWidget {
     final isEditMode = viewModel.isEditMode;
     final text = isEditMode
         ? '${viewModel.selectedRatingIds.length}개 선택'
-        : '학습용 memberId ${viewModel.memberId} · 평점 ${viewModel.ratings.length}개';
+        : '이번 로그인에서 등록한 평점 ${viewModel.ratings.length}개';
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
