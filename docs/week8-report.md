@@ -5,7 +5,7 @@
 | 항목 | 내용 |
 | --- | --- |
 | 브랜치 | `feature/week-8` (feature/week-7에서 분기) |
-| Pull Request | (작성 예정) |
+| Pull Request | https://github.com/seoktae-lee/movielog/pull/10 |
 | 사용 API | 워크북 Swagger **v7** — 로그인, 내 정보 GET·PATCH, 평점 등록·수정·삭제(토큰), 유저별 평점 조회(공개), 회원가입·중복 확인 + TMDB |
 | 검증 플랫폼 | **iOS 시뮬레이터**(iPhone 18 Pro, iOS 27.0) — 로그인·Keychain·재시작 복원 / **Chrome**(Flutter web debug) — 나머지 화면 |
 | 검증 | `flutter analyze` 0건 / `flutter test` 144개 통과 / 실제 서버 요청 기록 [week8-network-log.md](week8-network-log.md) |

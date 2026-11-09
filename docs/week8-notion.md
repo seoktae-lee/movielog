@@ -10,7 +10,7 @@
 | --- | --- |
 | 이름 / 닉네임 | 이석태 / 태이 |
 | GitHub 저장소 | https://github.com/seoktae-lee/movielog |
-| Pull Request | (작성 예정) |
+| Pull Request | https://github.com/seoktae-lee/movielog/pull/10 |
 | 브랜치 | `feature/week-8` |
 | 사용 API | 워크북 Swagger v7 (`https://workbook.devnoco.com/v7`) + TMDB |
 | 검증 플랫폼 | iOS 시뮬레이터 iPhone 18 Pro (iOS 27.0) — 로그인·Keychain·재시작 복원 / Chrome(Flutter web) — 나머지 화면 |
@@ -237,7 +237,7 @@ void _showSessionExpired() {
 ## 📮 제출 양식
 
 ```
-PR 링크: (작성 예정)
+PR 링크: https://github.com/seoktae-lee/movielog/pull/10
 로그인→GET me 증거: week8-04 → week8-06, 로그 POST /v7/auth/login 200 → GET /v7/members/me 200 (Bearer ***)
 재시작 복원 / 로그아웃 / 만료 증거: week8-gif-ios-restart-restore.gif / week8-gif-logout-redirect.gif / week8-gif-expiry.gif
 닉네임 수정 증거: week8-gif-profile-edit.gif (MEMBER409_1, 2~12자, 성공 후 마이페이지 즉시 반영)
