@@ -64,9 +64,21 @@ class ApiLoggingInterceptor extends Interceptor {
     return masked;
   }
 
-  static String _shorten(String text) => text.length <= _maxBodyLength
-      ? text
-      : '${text.substring(0, _maxBodyLength)}… (${text.length}자 중 일부)';
+  /// 응답 Body에 담긴 토큰(로그인 result의 accessToken)을 가린다.
+  ///
+  /// Header만 가리면 로그인 **응답** Body로 JWT 원문이 콘솔에 찍힌다. 8주차에 추가한 안전장치.
+  @visibleForTesting
+  static String maskBody(String text) => text.replaceAllMapped(
+    RegExp(r'(accessToken"?\s*[:=]\s*"?)[^",}\s]+'),
+    (match) => '${match[1]}***',
+  );
+
+  static String _shorten(String raw) {
+    final text = maskBody(raw);
+    return text.length <= _maxBodyLength
+        ? text
+        : '${text.substring(0, _maxBodyLength)}… (${text.length}자 중 일부)';
+  }
 }
 
 /// TMDB Client용 로그. `[TMDB 요청]` 형식으로 찍는다.

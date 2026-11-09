@@ -9,7 +9,7 @@ int validateServerScore(double value) {
   return value.toInt();
 }
 
-/// 평점 등록 요청 Body. (`POST /v6/members/{memberId}/ratings`)
+/// 평점 등록 요청 Body. (`POST /v7/ratings`, memberId 없음)
 ///
 /// 영화 정보는 TMDB가, 평점은 MovieLog 백엔드가 담당한다.
 /// 두 데이터를 잇는 값이 [movieId]이고, 목록 index가 아니라 `TmdbMovieDto.id`를 그대로 넣는다.
@@ -36,7 +36,7 @@ class CreateRatingRequest {
   String toString() => 'CreateRatingRequest(${toJson()})';
 }
 
-/// 평점 수정 요청 Body. (`PATCH /v6/members/{memberId}/ratings/{ratingId}`)
+/// 평점 수정 요청 Body. (`PATCH /v7/ratings/{ratingId}`)
 ///
 /// PATCH지만 부분 수정이 아니라 전체 교체다. score는 필수이고,
 /// comment를 빼면 기존 후기가 null로 덮인다. 그래서 등록과 달리 comment 키를 **항상** 보낸다.

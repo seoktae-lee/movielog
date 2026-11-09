@@ -5,8 +5,22 @@ import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 
 /// 프로필 이미지, 닉네임, 소개를 표시하는 헤더.
+///
+/// 8주차: 마이페이지는 GET me로 받은 닉네임·이메일·가입일을 넘긴다.
+/// 값을 넘기지 않으면 1주차 정적 프로필 화면처럼 예시 값을 보여 준다.
 class ProfileHeader extends StatelessWidget {
-  const ProfileHeader({super.key});
+  const ProfileHeader({
+    super.key,
+    this.nickname = '무비러버',
+    this.email,
+    this.joinedText,
+  });
+
+  final String nickname;
+  final String? email;
+
+  /// Challenge: "2026.10.10 가입"
+  final String? joinedText;
 
   @override
   Widget build(BuildContext context) {
@@ -15,28 +29,35 @@ class ProfileHeader extends StatelessWidget {
       child: Column(
         children: [
           const CircleAvatar(
-            // 원형 프로필 사진
             radius: 44, // 지름 88
             backgroundImage: AssetImage(
               'assets/images/profile/profile_movielog.jpg',
             ),
           ),
-          const SizedBox(height: 16), // 사진과 닉네임 사이 간격
-          const Text('무비러버', style: AppTextStyles.titleLarge),
-          const SizedBox(height: 4), // 닉네임과 소개 사이 간격
+          const SizedBox(height: 16),
+          Text(nickname, style: AppTextStyles.titleLarge),
+          if (joinedText case final joined?) ...[
+            const SizedBox(height: 2),
+            Text(joined, style: AppTextStyles.bodySmall),
+          ],
+          if (email case final email?) ...[
+            const SizedBox(height: 2),
+            Text(email, style: AppTextStyles.bodySmall),
+          ],
+          const SizedBox(height: 4),
           Row(
-            mainAxisSize: MainAxisSize.min, // 내용물 크기만큼만 → 가운데 정렬 가능
+            mainAxisSize: MainAxisSize.min,
             children: [
               SvgPicture.asset(
                 'assets/icons/movie.svg',
                 width: 16,
                 height: 16,
                 colorFilter: const ColorFilter.mode(
-                  AppColors.violet, // 검정 SVG를 보라색으로
+                  AppColors.violet,
                   BlendMode.srcIn,
                 ),
               ),
-              const SizedBox(width: 4), // 아이콘과 글자 사이 간격
+              const SizedBox(width: 4),
               const Text('좋아하는 영화를 기록하고 있어요', style: AppTextStyles.bodySmall),
             ],
           ),

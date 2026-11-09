@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 
 import '../data/models/create_member_request.dart';
 import '../theme/app_colors.dart';
-import '../view_models/learning_member_session.dart';
 import '../view_models/sign_up_view_model.dart';
 import '../widgets/common_app_bar.dart';
 import '../widgets/movie_log_text_form_field.dart';
@@ -15,7 +14,8 @@ import '../widgets/terms_checkbox.dart';
 ///
 /// 2주차: Form과 State로 입력·형식 오류·완료 상태를 다룬다.
 /// 6주차: 닉네임·이메일이 이미 쓰이고 있는지 워크북 서버에 묻는다. ([SignUpViewModel])
-/// 7주차: 유효한 입력을 `POST /v6/members`로 실제 전송하고, 결과 memberId를 [LearningMemberSession]에 저장한다.
+/// 7주차: 유효한 입력을 회원가입 POST로 실제 전송한다.
+/// 8주차: `POST /v7/members`. 가입 응답에는 토큰이 없으므로, 성공하면 로그인 화면으로 보내고 이메일을 채워 둔다.
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
 
@@ -125,7 +125,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   /// 가입하기 버튼을 눌렀을 때 실행된다.
   ///
   /// 로컬 Form 검증 + 두 칸 중복 확인 통과 + 제출 중 아님 → `POST /v6/members`.
-  /// 성공하면 memberId를 학습용 세션에 저장하고 /movies로, 실패하면 Snackbar(또는 비밀번호 칸 오류)로 안내한다.
+  /// 성공하면 /login으로(이메일 채움), 실패하면 Snackbar(또는 비밀번호 칸 오류)로 안내한다.
   Future<void> _submit() async {
     // validate()는 모든 TextFormField의 validator를 실행하고,
     // 하나라도 문자열을 반환하면 false를 돌려주며 해당 필드에 오류 메시지를 표시한다.
@@ -145,18 +145,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
     // await 사이에 화면이 사라졌으면 결과를 반영하지 않는다.
     if (!mounted) return;
 
-    final memberId = viewModel.createdMemberId;
-    if (viewModel.submitStatus == SubmitStatus.success && memberId != null) {
-      context.read<LearningMemberSession>().setMemberId(memberId);
+    if (viewModel.submitStatus == SubmitStatus.success &&
+        viewModel.createdMemberId != null) {
       final nickname = _nicknameController.text.trim();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('$nickname님, 가입을 환영합니다! (memberId $memberId)'),
+          content: Text('$nickname님, 가입을 환영합니다! 로그인해 주세요.'),
           behavior: SnackBarBehavior.floating,
         ),
       );
-      // go라서 회원가입 화면이 Stack에 남지 않는다.
-      context.go('/movies');
+      // go라서 회원가입 화면이 Stack에 남지 않는다. 가입한 이메일을 로그인 화면에 넘긴다.
+      context.go('/login', extra: _emailController.text.trim());
       return;
     }
 

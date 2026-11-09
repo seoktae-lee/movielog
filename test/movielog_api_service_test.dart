@@ -1,4 +1,4 @@
-// 워크북 서버(v6) Service가 명세대로 요청하고 응답을 모델로 바꾸는지 확인한다.
+// 워크북 서버(v7) Service가 명세대로 요청하고 응답을 모델로 바꾸는지 확인한다.
 
 import 'dart:convert';
 
@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:movielog/core/network/movie_log_client.dart';
+import 'package:movielog/core/network/tmdb_logging_interceptor.dart';
 import 'package:movielog/data/models/check_result.dart';
 import 'package:movielog/data/models/common_response.dart';
 import 'package:movielog/data/models/create_member_request.dart';
@@ -80,7 +81,7 @@ void main() {
 
   test('워크북 Client는 workbook.devnoco.com을 쓰고 TMDB Token을 붙이지 않는다', () async {
     final (:dio, :adapter) = create({
-      '/v6/members/nickname/%EC%98%81%ED%99%94%EA%B4%91': (
+      '/v7/members/nickname/%EC%98%81%ED%99%94%EA%B4%91': (
         200,
         {'available': false},
       ),
@@ -95,15 +96,15 @@ void main() {
 
   test('이메일은 URL 인코딩해서 경로에 넣는다', () async {
     final (:dio, :adapter) = create({
-      '/v6/members/email/movie%40umc.com': (200, {'available': true}),
+      '/v7/members/email/movie%40umc.com': (200, {'available': true}),
     });
 
     expect(await SignUpService(dio).checkEmail('movie@umc.com'), isTrue);
   });
 
-  test('유저별 평점: 배열을 RatingDto 목록으로, 빈 배열은 빈 목록으로', () async {
-    final (:dio, adapter: _) = create({
-      '/v6/members/1/ratings': (
+  test('유저별 평점(공개): 배열을 RatingDto 목록으로, 빈 배열은 빈 목록으로', () async {
+    final (:dio, :adapter) = create({
+      '/v7/members/1/ratings': (
         200,
         [
           {
@@ -116,70 +117,39 @@ void main() {
           },
         ],
       ),
-      '/v6/members/3/ratings': (200, <Object>[]),
+      '/v7/members/3/ratings': (200, <Object>[]),
     });
-    final service = RatingApiService(dio);
+    final service = RatingApiService(dio, dio);
 
-    final ratings = await service.fetchMyRatings(1);
+    final ratings = await service.fetchMemberRatings(1);
     expect(ratings.single.movieId, 550);
     expect(ratings.single.comment, '최고의 영화!');
-
-    expect(await service.fetchMyRatings(3), isEmpty);
+    expect(await service.fetchMemberRatings(3), isEmpty);
+    expect(adapter.requests.first.headers['Authorization'], isNull);
   });
 
-  test('400·404·연결 실패를 서로 다른 문구로 바꾼다', () async {
-    final (:dio, adapter: _) = create({
-      // v6 실패는 공통 형식으로 감싸진다.
-      '/v6/members/4/ratings': (
-        404,
-        {
-          'isSuccess': false,
-          'code': 'COMMON404',
-          'message': '존재하지 않는 유저입니다.',
-          'result': null,
-        },
-      ),
-    });
-
-    try {
-      await RatingApiService(dio).fetchMyRatings(4);
-      fail('404면 DioException을 던져야 한다');
-    } on DioException catch (error) {
-      expect(writeMyRatingsErrorMessage(error), '존재하지 않는 회원입니다.');
-    }
-
-    DioException withStatus(int? status) => DioException(
-      requestOptions: RequestOptions(),
-      response: status == null
-          ? null
-          : Response(requestOptions: RequestOptions(), statusCode: status),
-    );
-    expect(
-      writeMyRatingsErrorMessage(withStatus(400)),
-      'memberId 형식을 다시 확인해 주세요.',
-    );
-    expect(
-      writeMyRatingsErrorMessage(withStatus(null)),
-      '평점을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
-    );
-  });
-
-  test('로그는 [MovieLog 요청] 형식으로 남는다', () async {
+  test('로그는 [MovieLog 요청] 형식으로 남고, 응답의 accessToken은 가린다', () async {
     final logs = <String>[];
     final original = debugPrint;
     debugPrint = (message, {wrapWidth}) => logs.add(message ?? '');
     addTearDown(() => debugPrint = original);
 
     final (:dio, adapter: _) = create({
-      '/v6/members/1/ratings': (200, <Object>[]),
+      '/v7/members/1/ratings': (200, <Object>[]),
     });
-    await RatingApiService(dio).fetchMyRatings(1);
+    await RatingApiService(dio, dio).fetchMemberRatings(1);
 
     expect(
       logs,
       contains(
-        '[MovieLog 요청] GET https://workbook.devnoco.com/v6/members/1/ratings',
+        '[MovieLog 요청] GET https://workbook.devnoco.com/v7/members/1/ratings',
       ),
+    );
+    expect(
+      ApiLoggingInterceptor.maskBody(
+        '{isSuccess: true, result: {nickname: 태이, accessToken: eyJabc.def.ghi}}',
+      ),
+      '{isSuccess: true, result: {nickname: 태이, accessToken: ***}}',
     );
   });
 
@@ -266,7 +236,7 @@ void main() {
   group('7주차 쓰기 API', () {
     test('회원가입 POST: body를 보내고 CommonResponse<SignUpResult>로 읽는다', () async {
       final (:dio, :adapter) = create({
-        'POST /v6/members': (
+        'POST /v7/members': (
           201,
           {
             'isSuccess': true,
@@ -294,7 +264,7 @@ void main() {
 
     test('회원가입 409는 서버 message를 그대로 문구로 쓴다', () async {
       final (:dio, adapter: _) = create({
-        'POST /v6/members': (
+        'POST /v7/members': (
           409,
           {
             'isSuccess': false,
@@ -322,27 +292,30 @@ void main() {
       );
     });
 
-    test('평점 등록 201: result를 파싱하지 않고(null이어도) 성공', () async {
+    Map<String, Object?> ratingResult(int id, int score, String? comment) => {
+      'isSuccess': true,
+      'code': 'COMMON200',
+      'message': 'ok',
+      'result': {
+        'ratingId': id,
+        'movieId': 550,
+        'score': score,
+        'comment': comment,
+        'createdAt': '2026-11-09T10:00:00.000Z',
+        'updatedAt': '2026-11-09T10:00:00.000Z',
+      },
+    };
+
+    test('평점 등록 v7: POST /v7/ratings, body에 memberId 없음, result는 Rating 객체', () async {
       final (:dio, :adapter) = create({
-        'POST /v6/members/42/ratings': (
-          201,
-          {
-            'isSuccess': true,
-            'code': 'COMMON201',
-            'message': '평점 등록에 성공했습니다.',
-            'result': null,
-          },
-        ),
+        'POST /v7/ratings': (201, ratingResult(12, 5, '최고')),
       });
 
-      await RatingApiService(dio).createRating(
-        memberId: 42,
-        request: const CreateRatingRequest(
-          movieId: 550,
-          score: 5,
-          comment: '최고',
-        ),
+      final created = await RatingApiService(dio, dio).createRating(
+        const CreateRatingRequest(movieId: 550, score: 5, comment: '최고'),
       );
+      expect(created.ratingId, 12);
+      expect(adapter.requests.single.uri.path, '/v7/ratings');
       expect(adapter.requests.single.data, {
         'movieId': 550,
         'score': 5,
@@ -350,67 +323,49 @@ void main() {
       });
     });
 
-    test('평점 수정 PATCH: score와 comment(null 포함)를 함께 보낸다', () async {
+    test('평점 수정 v7 PATCH: score와 comment(null 포함)를 함께 보내고 result를 돌려준다', () async {
       final (:dio, :adapter) = create({
-        'PATCH /v6/members/42/ratings/7': (
+        'PATCH /v7/ratings/7': (200, ratingResult(7, 2, null)),
+      });
+
+      final updated = await RatingApiService(
+        dio,
+        dio,
+      ).updateRating(ratingId: 7, score: 2, comment: null);
+      expect(updated.score, 2);
+      expect(adapter.requests.single.data, {'score': 2, 'comment': null});
+    });
+
+    test('평점 삭제 v7: 204가 아니라 200 + result null', () async {
+      final (:dio, :adapter) = create({
+        'DELETE /v7/ratings/7': (
           200,
           {
             'isSuccess': true,
             'code': 'COMMON200',
-            'message': 'ok',
+            'message': '평점을 삭제했습니다.',
             'result': null,
           },
         ),
       });
 
-      await RatingApiService(dio)
-          .updateRating(memberId: 42, ratingId: 7, score: 2, comment: null);
-      final request = adapter.requests.single;
-      expect(request.method, 'PATCH');
-      expect(request.data, {'score': 2, 'comment': null});
-    });
-
-    test('평점 삭제 204: 본문이 없어도 파싱 오류 없이 끝난다', () async {
-      final (:dio, :adapter) = create({
-        'DELETE /v6/members/42/ratings/7': (204, null),
-      });
-
-      await RatingApiService(dio).deleteRating(memberId: 42, ratingId: 7);
+      await RatingApiService(dio, dio).deleteRating(7);
       expect(adapter.requests.single.method, 'DELETE');
     });
 
-    test('쓰기 오류: message는 그대로, 403·404만 재조회 대상', () {
-      final e400 = fakeMovieLogError(
-        statusCode: 400,
-        code: 'COMMON400',
-        message: '별점은 5점 이하여야 합니다.',
-      );
-      final e403 = fakeMovieLogError(
-        statusCode: 403,
-        code: 'COMMON403',
-        message: '본인이 작성한 평점만 수정하거나 삭제할 수 있습니다.',
-      );
-      final e404 = fakeMovieLogError(
-        statusCode: 404,
-        code: 'COMMON404',
-        message: '존재하지 않는 평점입니다.',
-      );
-      final e409 = fakeMovieLogError(
-        statusCode: 409,
-        code: 'COMMON409',
-        message: '이미 이 영화에 평점을 남기셨습니다.',
-      );
+    test('쓰기 오류 문구는 v7 도메인 code로 정한다', () {
+      DioException e(int status, String code, [String message = '']) =>
+          fakeMovieLogError(statusCode: status, code: code, message: message);
 
-      expect(writeErrorMessage(e400), '별점은 5점 이하여야 합니다.');
-      expect(writeErrorMessage(e403), '본인이 작성한 평점만 수정하거나 삭제할 수 있습니다.');
-      expect(writeErrorMessage(e404), '존재하지 않는 평점입니다.');
-      expect(writeErrorMessage(e409), '이미 이 영화에 평점을 남기셨습니다.');
-      expect(writeErrorMessage(fakeMovieLogError()), contains('잠시 후 다시'));
-
-      expect(shouldRefreshAfterRatingError(e400), isFalse);
-      expect(shouldRefreshAfterRatingError(e403), isTrue);
-      expect(shouldRefreshAfterRatingError(e404), isTrue);
-      expect(shouldRefreshAfterRatingError(e409), isFalse);
+      expect(
+        writeErrorMessage(e(400, 'COMMON400', '별점은 5점 이하여야 합니다.')),
+        '별점은 5점 이하여야 합니다.',
+      );
+      expect(writeErrorMessage(e(403, 'RATING403_1')), contains('본인이 작성한'));
+      expect(writeErrorMessage(e(404, 'RATING404_1')), contains('찾을 수 없는 평점'));
+      expect(writeErrorMessage(e(409, 'RATING409_1')), contains('이미 이 영화에'));
+      expect(writeErrorMessage(e(401, 'AUTH401_4')), contains('만료'));
+      expect(writeErrorMessage(fakeMovieLogError()), contains('다시 시도'));
     });
   });
 }
