@@ -262,19 +262,19 @@ void main() {
         ),
       );
 
-      await dio.get('/v7/members/me');
-      await dio.post('/v7/ratings');
-      await dio.patch('/v7/ratings/3');
-      await dio.get('/v7/members/1/ratings');
-      await dio.post('/v7/auth/login');
+      await dio.get('/v8/members/me');
+      await dio.post('/v8/ratings');
+      await dio.patch('/v8/ratings/3');
+      await dio.get('/v8/members/1/ratings');
+      await dio.post('/v8/auth/login');
       await dio.get('https://api.themoviedb.org/3/movie/550');
 
       expect(seen, {
-        'https://workbook.devnoco.com/v7/members/me': 'Bearer jwt',
-        'https://workbook.devnoco.com/v7/ratings': 'Bearer jwt',
-        'https://workbook.devnoco.com/v7/ratings/3': 'Bearer jwt',
-        'https://workbook.devnoco.com/v7/members/1/ratings': null,
-        'https://workbook.devnoco.com/v7/auth/login': null,
+        'https://workbook.devnoco.com/v8/members/me': 'Bearer jwt',
+        'https://workbook.devnoco.com/v8/ratings': 'Bearer jwt',
+        'https://workbook.devnoco.com/v8/ratings/3': 'Bearer jwt',
+        'https://workbook.devnoco.com/v8/members/1/ratings': null,
+        'https://workbook.devnoco.com/v8/auth/login': null,
         'https://api.themoviedb.org/3/movie/550': null,
       });
     });
@@ -283,13 +283,16 @@ void main() {
       final storage = InMemoryTokenStorage('jwt')..failRead = true;
       final dio = createAuthMovieLogClient(storage);
       try {
-        await dio.get('/v7/members/me');
+        await dio.get('/v8/members/me');
         fail('reject되어야 한다');
       } on DioException catch (error) {
         expect(error.type, DioExceptionType.unknown);
         expect(error.response, isNull);
       }
-      expect(AuthInterceptor.isProtected(Uri.parse('https://evil.com/v7/ratings')), isFalse);
+      expect(
+        AuthInterceptor.isProtected(Uri.parse('https://evil.com/v8/ratings')),
+        isFalse,
+      );
     });
   });
 

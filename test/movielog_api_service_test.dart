@@ -1,7 +1,5 @@
 // 워크북 서버(v7) Service가 명세대로 요청하고 응답을 모델로 바꾸는지 확인한다.
 
-import 'dart:convert';
-
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,39 +14,7 @@ import 'package:movielog/data/services/rating_api_service.dart';
 import 'package:movielog/data/services/sign_up_service.dart';
 
 import 'support/fake_movielog_services.dart';
-
-/// 경로별로 정해 둔 상태 코드·Body를 돌려주고, 들어온 요청을 기록한다.
-///
-/// Key는 `'METHOD /path'`(먼저 찾음) 또는 `'/path'`. Body가 null이면 본문 없이 응답한다. (204)
-class StubAdapter implements HttpClientAdapter {
-  StubAdapter(this.routes);
-
-  final Map<String, (int, Object?)> routes;
-  final requests = <RequestOptions>[];
-
-  @override
-  Future<ResponseBody> fetch(
-    RequestOptions options,
-    Stream<Uint8List>? requestStream,
-    Future<void>? cancelFuture,
-  ) async {
-    requests.add(options);
-    final path = options.uri.path;
-    final (status, body) =
-        routes['${options.method} $path'] ?? routes[path] ?? (404, const {});
-    if (body == null) return ResponseBody.fromString('', status);
-    return ResponseBody.fromString(
-      jsonEncode(body),
-      status,
-      headers: {
-        Headers.contentTypeHeader: [Headers.jsonContentType],
-      },
-    );
-  }
-
-  @override
-  void close({bool force = false}) {}
-}
+import 'support/stub_adapter.dart';
 
 void main() {
   ({Dio dio, StubAdapter adapter}) create(Map<String, (int, Object?)> routes) {
@@ -81,7 +47,7 @@ void main() {
 
   test('워크북 Client는 workbook.devnoco.com을 쓰고 TMDB Token을 붙이지 않는다', () async {
     final (:dio, :adapter) = create({
-      '/v7/members/nickname/%EC%98%81%ED%99%94%EA%B4%91': (
+      '/v8/members/nickname/%EC%98%81%ED%99%94%EA%B4%91': (
         200,
         {'available': false},
       ),
@@ -96,7 +62,7 @@ void main() {
 
   test('이메일은 URL 인코딩해서 경로에 넣는다', () async {
     final (:dio, :adapter) = create({
-      '/v7/members/email/movie%40umc.com': (200, {'available': true}),
+      '/v8/members/email/movie%40umc.com': (200, {'available': true}),
     });
 
     expect(await SignUpService(dio).checkEmail('movie@umc.com'), isTrue);
@@ -104,7 +70,7 @@ void main() {
 
   test('유저별 평점(공개): 배열을 RatingDto 목록으로, 빈 배열은 빈 목록으로', () async {
     final (:dio, :adapter) = create({
-      '/v7/members/1/ratings': (
+      '/v8/members/1/ratings': (
         200,
         [
           {
@@ -117,7 +83,7 @@ void main() {
           },
         ],
       ),
-      '/v7/members/3/ratings': (200, <Object>[]),
+      '/v8/members/3/ratings': (200, <Object>[]),
     });
     final service = RatingApiService(dio, dio);
 
@@ -135,14 +101,14 @@ void main() {
     addTearDown(() => debugPrint = original);
 
     final (:dio, adapter: _) = create({
-      '/v7/members/1/ratings': (200, <Object>[]),
+      '/v8/members/1/ratings': (200, <Object>[]),
     });
     await RatingApiService(dio, dio).fetchMemberRatings(1);
 
     expect(
       logs,
       contains(
-        '[MovieLog 요청] GET https://workbook.devnoco.com/v7/members/1/ratings',
+        '[MovieLog 요청] GET https://workbook.devnoco.com/v8/members/1/ratings',
       ),
     );
     expect(
@@ -236,7 +202,7 @@ void main() {
   group('7주차 쓰기 API', () {
     test('회원가입 POST: body를 보내고 CommonResponse<SignUpResult>로 읽는다', () async {
       final (:dio, :adapter) = create({
-        'POST /v7/members': (
+        'POST /v8/members': (
           201,
           {
             'isSuccess': true,
@@ -264,7 +230,7 @@ void main() {
 
     test('회원가입 409는 서버 message를 그대로 문구로 쓴다', () async {
       final (:dio, adapter: _) = create({
-        'POST /v7/members': (
+        'POST /v8/members': (
           409,
           {
             'isSuccess': false,
@@ -306,39 +272,45 @@ void main() {
       },
     };
 
-    test('평점 등록 v7: POST /v7/ratings, body에 memberId 없음, result는 Rating 객체', () async {
-      final (:dio, :adapter) = create({
-        'POST /v7/ratings': (201, ratingResult(12, 5, '최고')),
-      });
+    test(
+      '평점 등록 v7: POST /v8/ratings, body에 memberId 없음, result는 Rating 객체',
+      () async {
+        final (:dio, :adapter) = create({
+          'POST /v8/ratings': (201, ratingResult(12, 5, '최고')),
+        });
 
-      final created = await RatingApiService(dio, dio).createRating(
-        const CreateRatingRequest(movieId: 550, score: 5, comment: '최고'),
-      );
-      expect(created.ratingId, 12);
-      expect(adapter.requests.single.uri.path, '/v7/ratings');
-      expect(adapter.requests.single.data, {
-        'movieId': 550,
-        'score': 5,
-        'comment': '최고',
-      });
-    });
+        final created = await RatingApiService(dio, dio).createRating(
+          const CreateRatingRequest(movieId: 550, score: 5, comment: '최고'),
+        );
+        expect(created.ratingId, 12);
+        expect(adapter.requests.single.uri.path, '/v8/ratings');
+        expect(adapter.requests.single.data, {
+          'movieId': 550,
+          'score': 5,
+          'comment': '최고',
+        });
+      },
+    );
 
-    test('평점 수정 v7 PATCH: score와 comment(null 포함)를 함께 보내고 result를 돌려준다', () async {
-      final (:dio, :adapter) = create({
-        'PATCH /v7/ratings/7': (200, ratingResult(7, 2, null)),
-      });
+    test(
+      '평점 수정 v7 PATCH: score와 comment(null 포함)를 함께 보내고 result를 돌려준다',
+      () async {
+        final (:dio, :adapter) = create({
+          'PATCH /v8/ratings/7': (200, ratingResult(7, 2, null)),
+        });
 
-      final updated = await RatingApiService(
-        dio,
-        dio,
-      ).updateRating(ratingId: 7, score: 2, comment: null);
-      expect(updated.score, 2);
-      expect(adapter.requests.single.data, {'score': 2, 'comment': null});
-    });
+        final updated = await RatingApiService(
+          dio,
+          dio,
+        ).updateRating(ratingId: 7, score: 2, comment: null);
+        expect(updated.score, 2);
+        expect(adapter.requests.single.data, {'score': 2, 'comment': null});
+      },
+    );
 
     test('평점 삭제 v7: 204가 아니라 200 + result null', () async {
       final (:dio, :adapter) = create({
-        'DELETE /v7/ratings/7': (
+        'DELETE /v8/ratings/7': (
           200,
           {
             'isSuccess': true,

@@ -11,6 +11,9 @@ import 'tmdb_fixtures.dart';
 /// Discover 요청 한 번의 조건.
 typedef DiscoverCall = ({int page, List<int>? genreIds});
 
+/// Search 요청 한 번의 조건.
+typedef SearchCall = ({int page, String query});
+
 /// 실제 서버 대신 fixture를 돌려주는 Service.
 ///
 /// `implements`라서 Dio 없이 만들 수 있고, 어떤 요청이 들어왔는지 기록한다.
@@ -20,20 +23,24 @@ class FakeTmdbMovieService implements TmdbMovieService {
     Future<TmdbMoviePageDto> Function(DiscoverCall call)? onDiscover,
     Future<List<TmdbGenreDto>> Function()? onGenres,
     Future<TmdbMovieDto> Function(int movieId)? onDetail,
+    Future<TmdbMoviePageDto> Function(SearchCall call)? onSearch,
   }) : onPopular = onPopular ?? _defaultPopular,
        onDiscover = onDiscover ?? _defaultDiscover,
        onGenres = onGenres ?? _defaultGenres,
-       onDetail = onDetail ?? _defaultDetail;
+       onDetail = onDetail ?? _defaultDetail,
+       onSearch = onSearch ?? _defaultSearch;
 
   Future<TmdbMoviePageDto> Function(int page) onPopular;
   Future<TmdbMoviePageDto> Function(DiscoverCall call) onDiscover;
   Future<List<TmdbGenreDto>> Function() onGenres;
   Future<TmdbMovieDto> Function(int movieId) onDetail;
+  Future<TmdbMoviePageDto> Function(SearchCall call) onSearch;
 
   int popularCalls = 0;
   int genreCalls = 0;
   final discoverCalls = <DiscoverCall>[];
   final detailCalls = <int>[];
+  final searchCalls = <SearchCall>[];
 
   @override
   Future<TmdbMoviePageDto> fetchPopular({int page = 1}) {
@@ -49,6 +56,16 @@ class FakeTmdbMovieService implements TmdbMovieService {
     final call = (page: page, genreIds: genreIds);
     discoverCalls.add(call);
     return onDiscover(call);
+  }
+
+  @override
+  Future<TmdbMoviePageDto> searchMovies({
+    required int page,
+    required String query,
+  }) {
+    final call = (page: page, query: query);
+    searchCalls.add(call);
+    return onSearch(call);
   }
 
   @override
@@ -85,11 +102,21 @@ class FakeTmdbMovieService implements TmdbMovieService {
     );
   }
 
+  /// 검색어마다 페이지당 20개, 3페이지까지 있는 것처럼 응답한다.
+  static Future<TmdbMoviePageDto> _defaultSearch(SearchCall call) async =>
+      TmdbMoviePageDto.fromJson(
+        pageJson(idRange(call.page * 1000, 20), page: call.page, totalPages: 3),
+      );
+
   static Future<List<TmdbGenreDto>> _defaultGenres() async => [
     for (final genre in genresJson['genres']!) TmdbGenreDto.fromJson(genre),
   ];
 
   static Future<TmdbMovieDto> _defaultDetail(int movieId) async =>
+      detailFor(movieId);
+
+  /// 기본 상세 응답. 테스트가 onDetail을 바꾸면서도 기본값을 재사용할 수 있게 열어 둔다.
+  static TmdbMovieDto detailFor(int movieId) =>
       TmdbMovieDto.fromJson(movieJson(movieId, title: '상세 $movieId'));
 }
 

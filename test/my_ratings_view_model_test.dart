@@ -29,11 +29,7 @@ void main() {
     ratingService = FakeRatingApiService(ratings: ratings ?? seed);
     tmdb = FakeTmdbMovieService();
     storage = InMemoryTokenStorage('saved-token');
-    auth = AuthViewModel(
-      FakeAuthApiService(),
-      FakeMemberApiService(),
-      storage,
-    );
+    auth = AuthViewModel(FakeAuthApiService(), FakeMemberApiService(), storage);
     await auth.restoreSession();
     expect(auth.status, AuthStatus.signedIn);
     store = SessionRatingStore(auth);

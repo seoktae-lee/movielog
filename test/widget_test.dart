@@ -216,10 +216,8 @@ void main() {
       );
       await tester.pumpWidget(
         Builder(
-          builder: (_) => MaterialApp.router(
-            theme: AppTheme.light,
-            routerConfig: router,
-          ),
+          builder: (_) =>
+              MaterialApp.router(theme: AppTheme.light, routerConfig: router),
         ),
       );
     }
@@ -320,7 +318,9 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    testWidgets('두 칸 모두 확인되고 입력이 유효하면 가입 POST 후 /login으로 이메일을 넘긴다', (tester) async {
+    testWidgets('두 칸 모두 확인되고 입력이 유효하면 가입 POST 후 /login으로 이메일을 넘긴다', (
+      tester,
+    ) async {
       await pumpSignUpInRouter(tester);
 
       await tester.enterText(nicknameField(), '태이');
