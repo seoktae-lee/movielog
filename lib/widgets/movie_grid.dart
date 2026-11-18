@@ -27,6 +27,8 @@ class MovieGrid extends StatelessWidget {
     this.preferredGenreIds = const [],
     this.onRefresh,
     this.refreshIndicatorKey,
+    this.footer,
+    this.scrollController,
   });
 
   final List<TmdbMovieDto> movies;
@@ -42,25 +44,40 @@ class MovieGrid extends StatelessWidget {
   /// 재시도 Dialog에서 새로고침을 코드로 다시 띄울 때 쓴다.
   final GlobalKey<RefreshIndicatorState>? refreshIndicatorKey;
 
+  /// 카드 아래에 붙는 한 줄 영역. (9주차: 더 보기·추가 로딩·다음 page 재시도·끝)
+  final Widget? footer;
+
+  /// 끝에 가까워졌는지 확인하는 무한 스크롤(Challenge)이 연결한다.
+  final ScrollController? scrollController;
+
   @override
   Widget build(BuildContext context) {
-    final grid = GridView.builder(
-      padding: movieGridPadding,
+    // GridView는 카드 아래에 다른 Widget을 붙이기 어렵다. 카드는 SliverGrid, footer는 SliverToBoxAdapter로 이어 붙인다.
+    final grid = CustomScrollView(
+      controller: scrollController,
       // 목록이 짧아도 당겨서 새로고침할 수 있도록 항상 스크롤을 허용한다.
       physics: const AlwaysScrollableScrollPhysics(),
-      gridDelegate: movieGridDelegate,
-      itemCount: movies.length,
-      itemBuilder: (context, index) {
-        final movie = movies[index];
-        return TmdbMovieCard(
-          // 같은 자리에 다른 영화가 와도 이전 이미지가 남지 않도록 TMDB id로 구분한다.
-          key: ValueKey(movie.id),
-          movie: movie,
-          genreNames: genreNames,
-          preferredGenreIds: preferredGenreIds,
-          onTap: () => onMovieTap(movie),
-        );
-      },
+      slivers: [
+        SliverPadding(
+          padding: movieGridPadding.copyWith(bottom: footer == null ? 24 : 0),
+          sliver: SliverGrid.builder(
+            gridDelegate: movieGridDelegate,
+            itemCount: movies.length,
+            itemBuilder: (context, index) {
+              final movie = movies[index];
+              return TmdbMovieCard(
+                // 같은 자리에 다른 영화가 와도 이전 이미지가 남지 않도록 TMDB id로 구분한다.
+                key: ValueKey(movie.id),
+                movie: movie,
+                genreNames: genreNames,
+                preferredGenreIds: preferredGenreIds,
+                onTap: () => onMovieTap(movie),
+              );
+            },
+          ),
+        ),
+        if (footer != null) SliverToBoxAdapter(child: footer),
+      ],
     );
 
     if (onRefresh == null) return grid;

@@ -35,15 +35,12 @@ class HomeScreen extends StatelessWidget {
           // select로 닉네임만 구독하므로 인기 영화 영역은 함께 다시 그려지지 않는다.
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-            child: Text(
-              switch (context.select<AuthViewModel, String?>(
-                (auth) => auth.member?.nickname,
-              )) {
-                final nickname? => '$nickname님,\n오늘은 어떤 영화를 기록할까요?',
-                null => '오늘은 어떤 영화를\n기록할까요?',
-              },
-              style: AppTextStyles.titleLarge,
-            ),
+            child: Text(switch (context.select<AuthViewModel, String?>(
+              (auth) => auth.member?.nickname,
+            )) {
+              final nickname? => '$nickname님,\n오늘은 어떤 영화를 기록할까요?',
+              null => '오늘은 어떤 영화를\n기록할까요?',
+            }, style: AppTextStyles.titleLarge),
           ),
           // 인기 영화 영역만 상태에 따라 다시 그린다. 위 인사말은 다시 그리지 않는다.
           Consumer<MovieHomeViewModel>(

@@ -59,7 +59,8 @@ class MyRatingsScreen extends StatelessWidget {
             MyRatingsLoadStatus.loading => const _RatingsLoading(),
             MyRatingsLoadStatus.empty => const MovieListEmpty(
               message: '이번 로그인에서 등록한 평점이 없습니다.',
-              description: '영화 상세에서 평점을 남기면 여기에 표시돼요.\n'
+              description:
+                  '영화 상세에서 평점을 남기면 여기에 표시돼요.\n'
                   '앱을 다시 시작하면 이전 평점은 표시되지 않아요. (v7 API 한계)',
             ),
             MyRatingsLoadStatus.success => _RatingsList(viewModel: viewModel),
@@ -82,7 +83,7 @@ Future<void> onEditPressed(BuildContext context, RatingDto rating) async {
     builder: (_) => RatingDialog(
       initialScore: rating.score,
       initialComment: rating.comment, // null이면 TextField가 빈 칸으로 시작한다.
-      onSubmit: (score, comment) => viewModel.updateRating(
+      onSubmit: (score, comment, _) => viewModel.updateRating(
         ratingId: rating.ratingId,
         score: score,
         comment: comment,

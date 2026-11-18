@@ -120,7 +120,7 @@ class _MyPageContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 즐겨찾기 API는 이후 주차에 붙인다. 지금은 평점 4.0 이상인 Mock 영화를 즐겨찾기로 본다.
+    // 아래 가로 목록은 기존 디자인 예시(Mock)다. 실제 즐겨찾기는 위의 '내 즐겨찾기' 행에서 서버 데이터로 본다.
     final favorites = movies
         .where((movie) => (movie.rating ?? 0) >= 4.0)
         .toList();
@@ -154,6 +154,17 @@ class _MyPageContent extends StatelessWidget {
           subtitle: const Text('이번 로그인에서 등록한 평점'),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.push('/my/ratings'),
+        ),
+        const Divider(height: 1, indent: 16, endIndent: 16),
+        // 9주차: 서버(`GET /v8/favorites`)의 내 즐겨찾기. 내가 등록한 평점 행 아래에 둔다.
+        ListTile(
+          key: const ValueKey('my-favorites-row'),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+          leading: const Icon(Icons.bookmark_border, color: AppColors.violet),
+          title: const Text('내 즐겨찾기'),
+          subtitle: const Text('상세에서 북마크한 영화'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push('/my/favorites'),
         ),
         const Divider(height: 1, indent: 16, endIndent: 16),
         const SizedBox(height: 24),
