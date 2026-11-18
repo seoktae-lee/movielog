@@ -9,11 +9,11 @@ class AuthApiService {
 
   final Dio _dio;
 
-  /// `POST /v7/auth/login` → 200 + `CommonResponse<LoginResult>`.
+  /// `POST /v8/auth/login` → 200 + `CommonResponse<LoginResult>`.
   ///
   /// 이메일·비밀번호가 틀리면 401 `AUTH401_1`. 이 401은 세션 만료가 아니라 Form 오류다.
   Future<LoginResult> login(LoginRequest request) async {
-    final response = await _dio.post('/v7/auth/login', data: request.toJson());
+    final response = await _dio.post('/v8/auth/login', data: request.toJson());
     final data = response.data;
     if (data is! Map<String, dynamic>) {
       throw StateError('로그인 응답 형식이 올바르지 않습니다.');

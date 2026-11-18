@@ -7,7 +7,7 @@ import 'auth_view_model.dart';
 
 enum EditProfileStatus { idle, saving, success, failure }
 
-/// 프로필 수정 화면 전용 ViewModel. 닉네임만 바꿀 수 있다. (`PATCH /v7/members/me`)
+/// 프로필 수정 화면 전용 ViewModel. 닉네임만 바꿀 수 있다. (`PATCH /v8/members/me`)
 ///
 /// 오류는 보여 줄 위치로 나눈다.
 /// - 입력칸 문제(길이·중복) → [nicknameError] (필드 아래, 입력값 유지)

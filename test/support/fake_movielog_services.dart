@@ -6,12 +6,17 @@ import 'package:movielog/core/storage/install_marker.dart';
 import 'package:movielog/core/storage/token_storage.dart';
 import 'package:movielog/data/models/common_response.dart';
 import 'package:movielog/data/models/create_member_request.dart';
+import 'package:movielog/data/models/favorite_check_dto.dart';
+import 'package:movielog/data/models/favorite_response_dto.dart';
+import 'package:movielog/data/models/movie_record_models.dart';
 import 'package:movielog/data/models/login_models.dart';
 import 'package:movielog/data/models/member_info.dart';
 import 'package:movielog/data/models/rating_dto.dart';
 import 'package:movielog/data/models/rating_request.dart';
 import 'package:movielog/data/models/sign_up_models.dart';
 import 'package:movielog/data/services/auth_api_service.dart';
+import 'package:movielog/data/services/favorite_api_service.dart';
+import 'package:movielog/data/services/movie_record_api_service.dart';
 import 'package:movielog/data/services/member_api_service.dart';
 import 'package:movielog/data/services/rating_api_service.dart';
 import 'package:movielog/data/services/sign_up_service.dart';
@@ -297,7 +302,7 @@ DioException fakeSessionExpired([String code = 'AUTH401_4']) =>
 /// [code]·[message]를 주면 공통 실패 응답 body(`isSuccess/code/message/result`)를 담는다.
 DioException fakeMovieLogError({
   int? statusCode,
-  String path = '/v7',
+  String path = '/v8',
   String? code,
   String? message,
 }) {
@@ -324,4 +329,166 @@ DioException fakeMovieLogError({
             },
     ),
   );
+}
+
+FavoriteResponseDto fakeFavorite(int id, int movieId) =>
+    FavoriteResponseDto.fromJson({
+      'favoriteId': id,
+      'movieId': movieId,
+      'createdAt': '2026-11-17T10:00:00.000Z',
+    });
+
+/// 메모리 목록으로 `/v8/favorites` 네 개 API를 흉내 내는 Service.
+///
+/// 오류는 메서드별로 따로 줄 수 있고, [gate]로 응답을 붙잡아 "요청 중" 상태나 늦게 도착한 응답을 만든다.
+class FakeFavoriteApiService implements FavoriteApiService {
+  FakeFavoriteApiService({List<FavoriteResponseDto>? favorites})
+    : favorites = List.of(favorites ?? const []);
+
+  /// 서버에 있다고 가정한 즐겨찾기들. (최근 것이 위)
+  List<FavoriteResponseDto> favorites;
+
+  DioException? addError;
+  DioException? deleteError;
+  DioException? listError;
+  DioException? checkError;
+
+  /// 한 번만 실패하는 오류. 쓰고 나면 null로 돌아간다.
+  DioException? nextListError;
+  DioException? nextCheckError;
+
+  /// 서버에서는 성공했지만 응답을 못 받은 상황(timeout)을 흉내 낸다. 쓰기 전에 실제로 반영한다.
+  bool addSucceedsButTimesOut = false;
+
+  Completer<void>? addGate;
+  Completer<void>? deleteGate;
+  Completer<void>? listGate;
+  Completer<void>? checkGate;
+
+  final addCalls = <int>[];
+  final deleteCalls = <int>[];
+  final checkCalls = <int>[];
+  int listCalls = 0;
+
+  bool isFavorite(int movieId) => favorites.any((f) => f.movieId == movieId);
+
+  @override
+  Future<FavoriteResponseDto> addFavorite({required int movieId}) async {
+    addCalls.add(movieId);
+    await addGate?.future;
+    if (addSucceedsButTimesOut) {
+      if (!isFavorite(movieId)) {
+        favorites = [
+          fakeFavorite(favorites.length + 100, movieId),
+          ...favorites,
+        ];
+      }
+      throw DioException(
+        requestOptions: RequestOptions(path: '/v8/favorites'),
+        type: DioExceptionType.receiveTimeout,
+      );
+    }
+    if (addError != null) throw addError!;
+    if (isFavorite(movieId)) {
+      throw fakeMovieLogError(
+        statusCode: 409,
+        code: 'FAVORITE409_1',
+        message: '이미 이 영화를 즐겨찾기하셨습니다.',
+      );
+    }
+    final created = fakeFavorite(favorites.length + 1, movieId);
+    favorites = [created, ...favorites];
+    return created;
+  }
+
+  @override
+  Future<List<FavoriteResponseDto>> fetchMyFavorites() async {
+    listCalls++;
+    await listGate?.future;
+    final once = nextListError;
+    if (once != null) {
+      nextListError = null;
+      throw once;
+    }
+    if (listError != null) throw listError!;
+    return List.of(favorites);
+  }
+
+  @override
+  Future<FavoriteCheckDto> checkFavorite({required int movieId}) async {
+    checkCalls.add(movieId);
+    await checkGate?.future;
+    final once = nextCheckError;
+    if (once != null) {
+      nextCheckError = null;
+      throw once;
+    }
+    if (checkError != null) throw checkError!;
+    return FavoriteCheckDto(movieId: movieId, isFavorite: isFavorite(movieId));
+  }
+
+  @override
+  Future<void> deleteFavorite({required int movieId}) async {
+    deleteCalls.add(movieId);
+    await deleteGate?.future;
+    if (deleteError != null) throw deleteError!;
+    if (!isFavorite(movieId)) {
+      throw fakeMovieLogError(
+        statusCode: 404,
+        code: 'FAVORITE404_1',
+        message: '즐겨찾기를 찾을 수 없습니다.',
+      );
+    }
+    favorites = [
+      for (final f in favorites)
+        if (f.movieId != movieId) f,
+    ];
+  }
+}
+
+/// `POST /v8/movie-records`를 흉내 낸다. 평점 목록·즐겨찾기 목록을 함께 바꾼다.
+///
+/// 서버처럼 한 트랜잭션이다: 이미 즐겨찾기한 영화에 addToFavorites=true면 평점도 저장하지 않는다.
+class FakeMovieRecordApiService implements MovieRecordApiService {
+  FakeMovieRecordApiService({this.ratings, this.favorites});
+
+  final FakeRatingApiService? ratings;
+  final FakeFavoriteApiService? favorites;
+
+  DioException? error;
+  Completer<void>? gate;
+  final calls = <MovieRecordRequest>[];
+
+  @override
+  Future<MovieRecordResponse> saveMovieRecord(
+    MovieRecordRequest request,
+  ) async {
+    calls.add(request);
+    await gate?.future;
+    if (error != null) throw error!;
+    if (request.addToFavorites &&
+        (favorites?.isFavorite(request.movieId) ?? false)) {
+      throw fakeMovieLogError(
+        statusCode: 409,
+        code: 'FAVORITE409_1',
+        message: '이미 이 영화를 즐겨찾기하셨습니다.',
+      );
+    }
+    final rating = fakeRating(
+      (ratings?.ratings.length ?? 0) + 1,
+      request.movieId,
+      request.score,
+      request.comment,
+    );
+    ratings?.ratings = [rating, ...ratings!.ratings];
+    FavoriteResponseDto? favorite;
+    if (request.addToFavorites) {
+      favorite = fakeFavorite(
+        (favorites?.favorites.length ?? 0) + 1,
+        request.movieId,
+      );
+      favorites?.favorites = [favorite, ...favorites!.favorites];
+    }
+    return MovieRecordResponse(rating: rating, favorite: favorite);
+  }
 }

@@ -1,6 +1,6 @@
 import 'common_response.dart';
 
-/// `GET /v7/members/me`·`PATCH /v7/members/me`의 result. 이메일·닉네임·가입일만 온다.
+/// `GET /v8/members/me`·`PATCH /v8/members/me`의 result. 이메일·닉네임·가입일만 온다.
 ///
 /// memberId와 password는 담기지 않는다. (명세)
 class MemberInfo {

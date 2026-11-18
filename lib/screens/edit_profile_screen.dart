@@ -129,10 +129,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             _confirmLeave();
           },
           child: Scaffold(
-            appBar: AppBar(
-              centerTitle: true,
-              title: const Text('프로필 수정'),
-            ),
+            appBar: AppBar(centerTitle: true, title: const Text('프로필 수정')),
             body: SafeArea(
               child: Padding(
                 padding: const EdgeInsets.all(24),

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../data/models/tmdb_movie_dto.dart';
+import '../data/services/movie_record_api_service.dart';
 import '../data/services/rating_api_service.dart';
 import '../data/services/tmdb_movie_service.dart';
 import '../theme/app_text_styles.dart';
@@ -80,6 +81,7 @@ class _MovieDetailLoaderState extends State<MovieDetailLoader> {
             context.read<AuthViewModel>(),
             context.read<SessionRatingStore>(),
             snapshot.data!,
+            recordService: context.read<MovieRecordApiService>(),
           ),
           child: const MovieDetailScreen(),
         );

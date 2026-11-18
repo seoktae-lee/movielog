@@ -9,7 +9,7 @@ import '../theme/app_text_styles.dart';
 import '../view_models/auth_view_model.dart';
 import '../widgets/movielog_button.dart';
 
-/// 로그인 화면. (`POST /v7/auth/login`)
+/// 로그인 화면. (`POST /v8/auth/login`)
 ///
 /// 버튼은 [AuthViewModel.login]만 호출하고 직접 `context.go('/home')` 하지 않는다.
 /// 성공하면 status가 signedIn이 되고 Router가 홈으로 보낸다. 실패하면 signedOut + message가 남는다.
@@ -161,9 +161,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     prefixIcon: Icon(Icons.email_outlined),
                     border: OutlineInputBorder(),
                   ),
-                  validator: (value) => (value?.trim().isEmpty ?? true)
-                      ? '이메일을 입력해 주세요.'
-                      : null,
+                  validator: (value) =>
+                      (value?.trim().isEmpty ?? true) ? '이메일을 입력해 주세요.' : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(

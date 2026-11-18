@@ -15,7 +15,7 @@ import '../widgets/terms_checkbox.dart';
 /// 2주차: Form과 State로 입력·형식 오류·완료 상태를 다룬다.
 /// 6주차: 닉네임·이메일이 이미 쓰이고 있는지 워크북 서버에 묻는다. ([SignUpViewModel])
 /// 7주차: 유효한 입력을 회원가입 POST로 실제 전송한다.
-/// 8주차: `POST /v7/members`. 가입 응답에는 토큰이 없으므로, 성공하면 로그인 화면으로 보내고 이메일을 채워 둔다.
+/// 8주차: `POST /v8/members`. 가입 응답에는 토큰이 없으므로, 성공하면 로그인 화면으로 보내고 이메일을 채워 둔다.
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
 
