@@ -13,14 +13,31 @@ class AuthInterceptor extends Interceptor {
 
   static const _host = 'workbook.devnoco.com';
 
-  /// 토큰이 필요한 경로: 내 정보(GET·PATCH)와 평점 등록·수정·삭제.
-  /// 유저별 평점 조회(`/v7/members/{id}/ratings`)는 공개 API라 여기에 없다.
-  static bool isProtected(Uri uri) {
+  static final _favoriteByMovie = RegExp(r'^/v8/favorites/[1-9]\d*$');
+
+  /// 토큰이 필요한 요청인지. (9주차: 즐겨찾기·영화 기록 추가)
+  ///
+  /// - 8주차 그대로: 내 정보(GET·PATCH), 평점 등록·수정·삭제
+  /// - 즐겨찾기: 등록(POST)·목록(GET) `/v8/favorites`, 여부 조회(GET)·해제(DELETE) `/v8/favorites/{movieId}`
+  /// - 영화 기록 저장: POST `/v8/movie-records` (Challenge)
+  ///
+  /// 유저별 평점 조회(`/v8/members/{id}/ratings`)는 공개 API라 여기에 없다.
+  /// 같은 경로라도 method가 다르면 보호 요청이 아니다. (예: `PUT /v8/favorites`)
+  static bool isProtected(Uri uri, [String method = 'GET']) {
+    if (uri.host != _host) return false;
     final path = uri.path;
-    return uri.host == _host &&
-        (path == '/v7/members/me' ||
-            path == '/v7/ratings' ||
-            path.startsWith('/v7/ratings/'));
+    final m = method.toUpperCase();
+
+    final w8Protected =
+        path == '/v8/members/me' ||
+        path == '/v8/ratings' ||
+        path.startsWith('/v8/ratings/');
+    final favorites =
+        (path == '/v8/favorites' && (m == 'GET' || m == 'POST')) ||
+        (_favoriteByMovie.hasMatch(path) && (m == 'GET' || m == 'DELETE'));
+    final movieRecord = path == '/v8/movie-records' && m == 'POST';
+
+    return w8Protected || favorites || movieRecord;
   }
 
   @override
@@ -28,7 +45,7 @@ class AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    if (!isProtected(options.uri)) {
+    if (!isProtected(options.uri, options.method)) {
       handler.next(options);
       return;
     }

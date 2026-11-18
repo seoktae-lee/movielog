@@ -49,6 +49,28 @@ class TmdbMovieService {
     return TmdbMoviePageDto.fromJson(response.data ?? const {});
   }
 
+  /// 영화 제목으로 검색한다. (`GET /search/movie`, 9주차)
+  ///
+  /// 빈 검색어는 서버에 보내지 않는다. ViewModel이 먼저 막고, 여기서도 한 번 더 막는다.
+  Future<TmdbMoviePageDto> searchMovies({
+    required int page,
+    required String query,
+  }) async {
+    if (query.trim().isEmpty) {
+      throw ArgumentError.value(query, 'query', '빈 검색어는 요청하지 않습니다.');
+    }
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/search/movie',
+      queryParameters: {
+        'query': query,
+        'page': page,
+        'language': 'ko-KR',
+        'include_adult': false,
+      },
+    );
+    return TmdbMoviePageDto.fromJson(response.data ?? const {});
+  }
+
   /// 영화 공식 장르 목록. (`GET /genre/movie/list`)
   Future<List<TmdbGenreDto>> fetchGenres() async {
     final response = await _dio.get<Map<String, dynamic>>(

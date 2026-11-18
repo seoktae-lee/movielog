@@ -27,13 +27,13 @@ List<RatingDto> parseRatingList(Object? data) {
       .toList();
 }
 
-/// MovieLog 평점 API Service. 8주차에 v6 → v7로 전환했다.
+/// MovieLog 평점 API Service. 8주차에 v6 → v7로 전환했고, 9주차에 경로만 `/v8`로 바꿨다. (계약은 v7과 같다)
 ///
 /// | 동작 | v6 | v7 |
 /// |---|---|---|
-/// | 등록 | `POST /v6/members/{memberId}/ratings` | `POST /v7/ratings` (201, result = Rating) |
-/// | 수정 | `PATCH /v6/members/{memberId}/ratings/{id}` | `PATCH /v7/ratings/{id}` (200, result = Rating) |
-/// | 삭제 | 같은 memberId 포함, 204 | `DELETE /v7/ratings/{id}` (200, result null) |
+/// | 등록 | `POST /v6/members/{memberId}/ratings` | `POST /v8/ratings` (201, result = Rating) |
+/// | 수정 | `PATCH /v6/members/{memberId}/ratings/{id}` | `PATCH /v8/ratings/{id}` (200, result = Rating) |
+/// | 삭제 | 같은 memberId 포함, 204 | `DELETE /v8/ratings/{id}` (200, result null) |
 /// | 사용자 식별 | path의 memberId | `Authorization: Bearer ...` |
 ///
 /// Dio를 두 개 받는다. 조회는 공개 API라 공개용, 쓰기는 보호용 Client로 보낸다.
@@ -44,17 +44,17 @@ class RatingApiService {
   final Dio _publicDio;
   final Dio _authDio;
 
-  /// 공개 조회: `GET /v7/members/{memberId}/ratings`. 토큰 없이 호출한다.
+  /// 공개 조회: `GET /v8/members/{memberId}/ratings`. 토큰 없이 호출한다.
   ///
   /// v7 로그인·내 정보 응답에 memberId가 없으므로, 로그인한 "나"의 목록을 이 API로 복원할 수는 없다.
   Future<List<RatingDto>> fetchMemberRatings(int memberId) async {
-    final response = await _publicDio.get('/v7/members/$memberId/ratings');
+    final response = await _publicDio.get('/v8/members/$memberId/ratings');
     return parseRatingList(response.data);
   }
 
   /// 등록. body에 memberId를 넣지 않는다. (넣을 자리 자체가 없다)
   Future<RatingDto> createRating(CreateRatingRequest request) async {
-    final response = await _authDio.post('/v7/ratings', data: request.toJson());
+    final response = await _authDio.post('/v8/ratings', data: request.toJson());
     return parseRatingResult(response.data);
   }
 
@@ -66,7 +66,7 @@ class RatingApiService {
     String? comment,
   }) async {
     final response = await _authDio.patch(
-      '/v7/ratings/$ratingId',
+      '/v8/ratings/$ratingId',
       data: UpdateRatingRequest(score: score, comment: comment).toJson(),
     );
     return parseRatingResult(response.data);
@@ -74,7 +74,7 @@ class RatingApiService {
 
   /// 삭제. v7 성공은 204가 아니라 200 + `{..., result: null}`이다.
   Future<void> deleteRating(int ratingId) async {
-    final response = await _authDio.delete('/v7/ratings/$ratingId');
+    final response = await _authDio.delete('/v8/ratings/$ratingId');
     if (response.statusCode != 200) {
       throw StateError('예상하지 못한 삭제 응답: ${response.statusCode}');
     }
@@ -94,6 +94,7 @@ String writeErrorMessage(DioException error) {
     'RATING403_1' => '본인이 작성한 평점만 수정하거나 삭제할 수 있어요.',
     'RATING409_1' => '이미 이 영화에 평점을 남겼어요. 기존 기록을 확인해 주세요.',
     'RATING404_1' => '이미 삭제됐거나 찾을 수 없는 평점이에요.',
+    'FAVORITE409_1' => '이미 즐겨찾기한 영화예요. 평점도 저장되지 않았어요.',
     'MEMBER404_1' => '회원 정보를 찾을 수 없어요. 다시 로그인해 주세요.',
     _ when sessionExpiredCodes.contains(apiErrorCode(error)) =>
       '로그인이 만료됐어요. 다시 로그인해 주세요.',
