@@ -7,7 +7,7 @@
 | 이름 / 닉네임 | 이석태 / 태이 |
 | 저장소 | https://github.com/seoktae-lee/movielog |
 | 브랜치 | `feature/week-9` (`feature/week-8`에서 분기) |
-| Pull Request | (생성 후 기입) |
+| Pull Request | https://github.com/seoktae-lee/movielog/pull/11 |
 | API | 워크북 서버 `/v8` (8주차 `/v7` 경로만 `/v8`로 교체, 즐겨찾기·영화 기록 신규) |
 | 검증 | `flutter analyze` 0 · 테스트 232개 통과 · 실서버 요청 확인(아래 표) |
 
